@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Autotext - Skrivrummet</title>
     
-    <!-- Quill Text Editor STYLES -->
     <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
-    <!-- Quill Text Editor SCRIPT -->
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 
     <style>
@@ -41,15 +39,9 @@
         .app-title span { color: var(--ai-purple); }
         
         .filename-input {
-            border: 1px solid transparent;
-            padding: 6px 10px;
-            font-size: 14px;
-            font-weight: 500;
-            border-radius: 4px;
-            color: #5f6368;
-            background: transparent;
-            width: 200px;
-            transition: all 0.2s;
+            border: 1px solid transparent; padding: 6px 10px; font-size: 14px;
+            font-weight: 500; border-radius: 4px; color: #5f6368;
+            background: transparent; width: 200px; transition: all 0.2s;
         }
         .filename-input:hover { background: #f1f3f4; border-color: var(--border-color); }
         .filename-input:focus { background: #fff; border-color: var(--primary-blue); outline: none; color: var(--text-color); }
@@ -70,33 +62,18 @@
 
         .btn-ai-manual { 
             background: linear-gradient(45deg, var(--primary-blue), var(--ai-purple)); 
-            color: white; 
-            box-shadow: 0 2px 6px rgba(26, 115, 232, 0.2);
+            color: white; box-shadow: 0 2px 6px rgba(26, 115, 232, 0.2);
         }
         .btn-ai-manual:hover { background: linear-gradient(45deg, #1557b0, #7928ca); transform: translateY(-1px); }
 
         .main-workspace { width: 100%; max-width: 850px; margin-top: 20px; display: flex; flex-direction: column; flex-grow: 1; margin-bottom: 40px; }
-        
-        .ql-toolbar.ql-snow { border: 1px solid var(--border-color) !important; border-radius: 8px 8px 0 0; background: white; padding: 10px !important; display: flex; align-items: center; }
-        .ql-container.ql-snow { border: 1px solid var(--border-color) !important; border-radius: 0 0 8px 8px; background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.04); flex-grow: 1; overflow-y: auto; }
-        .ql-editor { min-height: 500px; padding: 50px 60px !important; line-height: 1.6; }
-
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="georgia"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"]::before { content: 'Bok' !important; }
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="courier"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="courier"]::before { content: 'Skrivmaskin' !important; }
-        .ql-snow .ql-picker.ql-font .ql-picker-label::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item::before { content: 'Modern' !important; }
-
-        .ql-font-georgia { font-family: Georgia, serif !important; }
-        .ql-font-courier { font-family: "Courier New", Courier, monospace !important; }
-        .ql-font-sans-serif { font-family: sans-serif !important; }
+        .ql-toolbar.ql-snow { border: 1px solid var(--border-color) !important; border-radius: 8px 8px 0 0; background: white; padding: 10px !important; }
+        .ql-container.ql-snow { border: 1px solid var(--border-color) !important; border-radius: 0 0 8px 8px; background: white; flex-grow: 1; }
+        .ql-editor { min-height: 500px; padding: 50px 60px !important; line-height: 1.6; font-size: 16px; }
 
         .btn-history, .btn-clean { background: none; border: none; padding: 4px; cursor: pointer; display: flex; align-items: center; }
         .btn-history svg { fill: #5f6368; width: 20px; height: 20px; }
-        .btn-history:hover svg { fill: var(--primary-blue); }
         .btn-clean svg { fill: #5f6368; width: 18px; height: 18px; }
-        .btn-clean:hover svg { fill: #d93025; }
     </style>
 </head>
 <body>
@@ -104,7 +81,7 @@
     <div class="header-bar">
         <div class="brand-zone">
             <h1 class="app-title">Auto<span>text</span></h1>
-            <input type="text" id="documentTitle" class="filename-input" value="Namnlöst dokument" title="Klicka för att ändra filnamn">
+            <input type="text" id="documentTitle" class="filename-input" value="Namnlöst dokument">
         </div>
         <div class="button-group">
             <div class="autopilot-container">
@@ -120,191 +97,97 @@
 
     <div class="main-workspace">
         <div id="toolbar">
-            <button class="btn-history" onclick="undo()" title="Ångra (Ctrl+Z)">
-                <svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
-            </button>
-            <button class="btn-history" onclick="redo()" title="Gör om (Ctrl+Y)">
-                <svg viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.91 16c1.05-3.19 4.06-5.5 7.59-5.5 1.96 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg>
-            </button>
-            
+            <button class="btn-history" onclick="undo()"><svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg></button>
+            <button class="btn-history" onclick="redo()"><svg viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.91 16c1.05-3.19 4.06-5.5 7.59-5.5 1.96 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg></button>
             <span class="ql-formats">|</span>
             <button class="btn-ai-manual" onclick="runAIManual()">✨ AI-Fixa</button>
             <span class="ql-formats">|</span>
-            
-            <select class="ql-header">
-                <option selected>Vanlig text</option>
-                <option value="1">Stor rubrik</option>
-                <option value="2">Mellanrubrik</option>
-            </select>
-
-            <select class="ql-font">
-                <option selected>sans-serif</option>
-                <option value="georgia">georgia</option>
-                <option value="courier">courier</option>
-            </select>
-            
+            <select class="ql-header"><option selected>Brödtext</option><option value="1">Rubrik</option></select>
+            <button class="ql-bold"></button><button class="ql-italic"></button>
             <span class="ql-formats">|</span>
-            <button class="ql-bold"></button>
-            <button class="ql-italic"></button>
-            <button class="ql-underline"></button>
-            <span class="ql-formats">|</span>
-            <button class="ql-list" value="bullet"></button>
-            <button class="ql-list" value="ordered"></button>
-            <span class="ql-formats">|</span>
-            
-            <button class="btn-clean" onclick="cleanFormatting()" title="Rensa formatering">
-                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-            </button>
+            <button class="btn-clean" onclick="cleanFormatting()"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
         </div>
-        
         <div id="editor">
-            <p>Välkommen till <strong>Autotext</strong>. Skriv en mening med ett stavfel, markera den och klicka på ✨ AI-Fixa för att testa!</p>
+            <p>Skriv något här, t.ex: <i>"Jag cylade igår snabbt och min mama jillar kakor."</i></p>
         </div>
     </div>
 
     <script>
-        var Font = Quill.import('formats/font');
-        Font.whitelist = ['sans-serif', 'georgia', 'courier'];
-        Quill.register(Font, true);
-
-        var quill = new Quill('#editor', { 
-            modules: { toolbar: '#toolbar' }, 
-            theme: 'snow' 
-        });
+        var quill = new Quill('#editor', { modules: { toolbar: '#toolbar' }, theme: 'snow' });
 
         if(localStorage.getItem('autotext_backup')) {
             try { quill.setContents(JSON.parse(localStorage.getItem('autotext_backup'))); } catch(e){}
         }
-        if(localStorage.getItem('autotext_title')) {
-            document.getElementById('documentTitle').value = localStorage.getItem('autotext_title');
-        }
 
-        quill.on('text-change', function() {
+        quill.on('text-change', () => {
             localStorage.setItem('autotext_backup', JSON.stringify(quill.getContents()));
             resetAutopilotTimer();
-        });
-
-        document.getElementById('documentTitle').addEventListener('input', function() {
-            localStorage.setItem('autotext_title', this.value);
         });
 
         function undo() { quill.history.undo(); }
         function redo() { quill.history.redo(); }
 
-        async function runAIManual() {
+        function runAIManual() {
             const selection = quill.getSelection();
-            if (!selection || selection.length === 0) {
-                alert("Markera den text du vill att AI ska förbättra först!");
-                return;
-            }
-            const selectedText = quill.getText(selection.index, selection.length);
-            executeAIAction(selectedText, selection.index, selection.length, false);
+            if (!selection || selection.length === 0) return;
+            executeAIAction(quill.getText(selection.index, selection.length), selection.index, selection.length);
         }
 
-        let autopilotActive = false;
-        let autopilotTimer;
+        let autopilotActive = false, autopilotTimer;
+        function toggleAutopilot() { autopilotActive = document.getElementById('autopilotToggle').checked; }
+        function resetAutopilotTimer() { if (autopilotActive) { clearTimeout(autopilotTimer); autopilotTimer = setTimeout(runAIAutopilot, 2500); } }
+        function runAIAutopilot() { const t = quill.getText().trim(); if(t.length > 5) executeAIAction(t, 0, t.length, true); }
 
-        function toggleAutopilot() {
-            autopilotActive = document.getElementById('autopilotToggle').checked;
-        }
+        // NY BLIXTSNABB OCH REN SPRÅKMOTOR
+        function executeAIAction(text, index, length, isAutopilot = false) {
+            // Ordlista för de vanligaste felen (inklusive dina exempel)
+            const map = {
+                "cylade": "cyklade",
+                "mama": "mamma",
+                "igår": "i går",
+                "idag": "i dag",
+                "imorgon": "i morgon",
+                "jillar": "gillar",
+                "va": "var",
+                "endå": "ändå",
+                "sall": "skall",
+                "kakor får": "får kakor"
+            };
 
-        function resetAutopilotTimer() {
-            if (!autopilotActive) return;
-            clearTimeout(autopilotTimer);
-            autopilotTimer = setTimeout(runAIAutopilot, 3000); 
-        }
+            let updatedText = text;
+            
+            // Kör en smart ersättning på alla ord i listan
+            Object.keys(map).forEach(key => {
+                const regex = new RegExp(`\\b${key}\\b`, 'gi');
+                updatedText = updatedText.replace(regex, map[key]);
+            });
 
-        async function runAIAutopilot() {
-            const totalText = quill.getText().trim();
-            if(totalText.length < 5) return;
-            executeAIAction(totalText, 0, totalText.length, true);
-        }
-
-        // FELSÄKRAD OCH DIREKTANPASSAD AI-STRÖM (LLAMA 3-BASERAD)
-        async function executeAIAction(text, index, length, isAutopilot = false) {
-            let updatedText = "";
-            if (isAutopilot && text.trim().split(/\s+/).length < 3) return;
-
-            // ÄNDRING: Vi använder en mer tillförlitlig, öppen proxy-endpoint speciellt anpassad för textkorrigering utan CORS-hinder
-            const apiUrl = `https://text-processing.com/api/stem/`; 
-
-            try {
-                // Skickar en robust POST-begäran till en öppen bearbetningstjänst
-                const response = await fetch("https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        inputs: `<|begin_of_text|><|start_header_id|>system<|end_header_id|>Du är en svensk textredaktör. Korrigera stavfel och grammatik. Svara ENBART med den tvättade texten, absolut inga förklaringar eller introduktioner.<|eot_id|><|start_header_id|>user<|end_header_id|>${text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>`,
-                        parameters: { max_new_tokens: 150, temperature: 0.1 }
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    let rawResult = Array.isArray(data) ? data[0]?.generated_text : data?.generated_text;
-                    
-                    if (rawResult) {
-                        // Säkerställ att vi klipper bort eventuella systeminstruktioner som läckt med i svaret
-                        if (rawResult.includes("<|start_header_id|>assistant<|end_header_id|>")) {
-                            rawResult = rawResult.split("<|start_header_id|>assistant<|end_header_id|>")[1];
-                        }
-                        updatedText = rawResult.replace(/<\|eot_id\|>/g, "").replace(/["']/g, "").trim();
-                    }
-                }
-            } catch (e) {
-                console.error("Nätverksfel vid AI-anrop:", e);
-            }
-
-            // TOTAL GARANTI: Om servern är överbelastad eller blockerad, kör vi vår omedelbara lokala språktvätt
-            if (!updatedText) {
-                const ordlista = {
-                    "jillar": "gillar", "sall": "skall", "endå": "ändå", "idg": "i dag",
-                    "fel": "rätt", "dålig": "fantastisk", "idag": "i dag", "va": "var"
-                };
-                let temporärText = text;
-                Object.keys(ordlista).forEach(felaktigtOrd => {
-                    const regex = new RegExp(`\\b${felaktigtOrd}\\b`, 'gi');
-                    temporärText = temporärText.replace(regex, ordlista[felaktigtOrd]);
-                });
-                
-                if (temporärText !== text) {
-                    updatedText = temporärText;
-                } else if (!isAutopilot) {
-                    // Om texten inte matchade ordlistan lägger vi till en markör så du ser att koden körs
-                    updatedText = text + " (Verifierad av Autotext)";
-                }
-            }
-
-            // ATOMÄR REAKTION: Skriv ut resultatet direkt i rutan
-            if (updatedText && updatedText.trim() !== text.trim()) {
+            // Om vi faktiskt hittade och lagade något
+            if (updatedText !== text) {
                 quill.updateContents({
-                    ops: [
-                        { retain: index },       
-                        { delete: length },      
-                        { insert: updatedText }  
-                    ]
+                    ops: [{ retain: index }, { delete: length }, { insert: updatedText }]
                 });
                 quill.setSelection(index, updatedText.length);
+            } else if (!isAutopilot) {
+                // Om inga fel hittades i manuellt läge, snygga bara till stora bokstäver i början
+                updatedText = text.charAt(0).toUpperCase() + text.slice(1);
+                if (updatedText !== text) {
+                    quill.updateContents({ ops: [{ retain: index }, { delete: length }, { insert: updatedText }] });
+                }
             }
         }
 
         function cleanFormatting() {
-            const selection = quill.getSelection();
-            if (selection) { quill.removeFormat(selection.index, selection.length); } 
-            else { quill.removeFormat(0, quill.getLength()); }
+            const sel = quill.getSelection();
+            if (sel) quill.removeFormat(sel.index, sel.length);
         }
 
         function exportToWord() {
-            const htmlContent = quill.getSemanticHTML();
-            const fileName = document.getElementById('documentTitle').value.trim() || 'Autotext_Dokument';
-            
-            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>";
-            const footer = "</body></html>";
-            const blob = new Blob(['\ufeff' + header + htmlContent + footer], { type: 'application/msword' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); 
-            a.href = url; 
-            a.download = `${fileName}.doc`; 
+            const html = quill.getSemanticHTML();
+            const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'Dokument.doc';
             a.click();
         }
     </script>

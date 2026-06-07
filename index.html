@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Autotext - Skrivrummet</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+
     <style>
         :root {
             --bg-color: #f4f5f7;
@@ -21,7 +25,6 @@
             margin: 0; padding: 0;
             display: flex; flex-direction: column; align-items: center;
             height: 100vh;
-            color: var(--text-color);
         }
 
         .header-bar {
@@ -29,7 +32,6 @@
             box-sizing: border-box; display: flex; justify-content: space-between;
             align-items: center; border-bottom: 1px solid var(--border-color);
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            z-index: 10;
         }
 
         .brand-zone { display: flex; align-items: center; gap: 16px; }
@@ -56,49 +58,32 @@
         input:checked + .slider { background-color: var(--ai-purple); }
         input:checked + .slider:before { transform: translateX(18px); }
 
-        .main-workspace { width: 100%; max-width: 850px; margin-top: 20px; display: flex; flex-direction: column; flex-grow: 1; margin-bottom: 40px; box-sizing: border-box; }
+        .main-workspace { width: 100%; max-width: 850px; margin-top: 20px; display: flex; flex-direction: column; flex-grow: 1; margin-bottom: 40px; }
         
-        /* FIXERAT OCH GARANDERAT VERKTYGSFÄLT OVERST */
-        .custom-toolbar {
-            width: 100%; box-sizing: border-box; background: white;
-            border: 1px solid var(--border-color); border-radius: 8px 8px 0 0;
-            padding: 10px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-            border-bottom: none;
+        /* Garanterar stabil rendering av standardtemat 'snow' */
+        .ql-toolbar.ql-snow { 
+            border: 1px solid var(--border-color) !important; 
+            border-radius: 8px 8px 0 0; 
+            background: white; 
+            padding: 10px !important; 
+            display: flex; 
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
         }
 
-        .btn-ai-manual { 
-            background: linear-gradient(45deg, var(--primary-blue), var(--ai-purple)); 
-            color: white; box-shadow: 0 2px 6px rgba(26, 115, 232, 0.2); 
-            padding: 8px 14px;
-        }
+        .ql-container.ql-snow { border: 1px solid var(--border-color) !important; border-radius: 0 0 8px 8px; background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.04); flex-grow: 1; overflow-y: auto; }
+        .ql-editor { min-height: 500px; padding: 40px 50px !important; line-height: 1.6; font-size: 16px; }
+
+        .btn-ai-manual { background: linear-gradient(45deg, var(--primary-blue), var(--ai-purple)); color: white; box-shadow: 0 2px 6px rgba(26, 115, 232, 0.2); margin-left: 4px; height: 28px; padding: 0 12px; display: flex; align-items: center; justify-content: center; }
         .btn-ai-manual:hover { background: linear-gradient(45deg, #1557b0, #7928ca); transform: translateY(-1px); }
 
-        .btn-tool {
-            background: #f8f9fa; border: 1px solid var(--border-color); color: #444;
-            padding: 6px 12px; font-size: 13px; font-weight: bold; border-radius: 6px; transition: all 0.15s;
-        }
-        .btn-tool:hover { background: #f1f3f4; border-color: #adafb3; }
-        .btn-tool:active { background: #e4e6e8; }
+        .custom-undo-redo { background: none; border: none; padding: 3px 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .custom-undo-redo svg { fill: #444; width: 18px; height: 18px; }
+        .custom-undo-redo:hover svg { fill: var(--primary-blue); }
 
-        .divider-line { width: 1px; height: 20px; background-color: var(--border-color); margin: 0 4px; }
-
-        /* FRISTÅENDE TEXTYTA SOM ALDRIG KAN KOLLAPSA */
-        .editor-container { 
-            width: 100%; box-sizing: border-box;
-            border: 1px solid var(--border-color); border-radius: 0 0 8px 8px; 
-            background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.04); 
-            flex-grow: 1; display: flex; flex-direction: column;
-            overflow-y: auto;
-        }
-        
-        .editor-body { 
-            min-height: 500px; padding: 40px 50px; line-height: 1.6; 
-            font-size: 16px; flex-grow: 1; outline: none; box-sizing: border-box;
-        }
-
-        .btn-history { background: none; border: none; padding: 4px; cursor: pointer; display: flex; align-items: center; }
-        .btn-history svg { fill: #5f6368; width: 18px; height: 18px; }
-        .btn-history:hover svg { fill: var(--primary-blue); }
+        .key-config-link { font-size: 11px; color: #999; text-decoration: none; cursor: pointer; margin-left: auto; padding-right: 5px;}
+        .key-config-link:hover { color: var(--primary-blue); }
     </style>
 </head>
 <body>
@@ -121,117 +106,117 @@
     </div>
 
     <div class="main-workspace">
-        <div class="custom-toolbar">
-            <button class="btn-history" onclick="executeCmd('undo')" title="Ångra"><svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg></button>
-            <button class="btn-history" onclick="executeCmd('redo')" title="Gör om"><svg viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.91 16c1.05-3.19 4.06-5.5 7.59-5.5 1.96 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg></button>
+        <div id="toolbar">
+            <button class="custom-undo-redo" onclick="undo()" title="Ångra"><svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg></button>
+            <button class="custom-undo-redo" onclick="redo()" title="Gör om"><svg viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.91 16c1.05-3.19 4.06-5.5 7.59-5.5 1.96 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg></button>
             
-            <div class="divider-line"></div>
+            <span class="ql-formats"></span>
             <button class="btn-ai-manual" onclick="runAIManual()">✨ AI-Fixa</button>
-            <div class="divider-line"></div>
-
-            <button class="btn-tool" onclick="executeCmd('bold')" title="Fetstil">B</button>
-            <button class="btn-tool" onclick="executeCmd('italic')" title="Kursiv">I</button>
-            <button class="btn-tool" onclick="executeCmd('underline')" title="Understruken">U</button>
+            <span class="ql-formats"></span>
             
-            <div class="divider-line"></div>
-            <button class="btn-tool" onclick="executeCmd('insertUnorderedList')" title="Punktlista">• Lista</button>
-            <button class="btn-tool" onclick="executeCmd('insertOrderedList')" title="Numrerad lista">1. Lista</button>
+            <select class="ql-header"><option selected>Vanlig text</option><option value="1">Stor rubrik</option><option value="2">Mellanrubrik</option></select>
+            <span class="ql-formats"></span>
+            <button class="ql-bold"></button>
+            <button class="ql-italic"></button>
+            <button class="ql-underline"></button>
+            <span class="ql-formats"></span>
+            <button class="ql-list" value="bullet"></button>
+            <button class="ql-list" value="ordered"></button>
+
+            <a class="key-config-link" onclick="setupApiKey(true)">🔑 Ändra API-nyckel</a>
         </div>
-        
-        <div class="editor-container">
-            <div id="editor" class="editor-body" contenteditable="true">
-                Välkommen till <strong>Autotext</strong>. Skriv en mening med ett stavfel (t.ex. <em>"Jag cykladlle i går snappt,"</em>), markera meningen och klicka på ✨ AI-Fixa för att testa!
-            </div>
+        <div id="editor">
+            <p>Välkommen till <strong>Autotext</strong>. Skriv en mening med ett stavfel (t.ex. <em>"Jag cykladlle i går snappt,"</em>), markera den och klicka på ✨ AI-Fixa!</p>
         </div>
     </div>
 
     <script>
-        const HF_TOKEN = "hf_MvlYvWlZfXbVdQwRKnZpYmJxTXZwTExhU3N6"; 
-        const editor = document.getElementById('editor');
-
-        // Formateringskommandon
-        function executeCmd(command) {
-            document.execCommand(command, false, null);
-            editor.focus();
+        // Funktion för att hantera API-nyckeln säkert utanför koden
+        function setupApiKey(forcePrompt = false) {
+            let key = localStorage.getItem("autotext_gemini_key");
+            if (!key || forcePrompt) {
+                const userKey = prompt("Vänligen klistra in din Gemini API-nyckel (Den sparas bara säkert i din egen webbläsare):", key || "");
+                if (userKey) {
+                    localStorage.setItem("autotext_gemini_key", userKey.trim());
+                    key = userKey.trim();
+                }
+            }
+            return key;
         }
 
-        // Backuphantering
-        if(localStorage.getItem('autotext_pure_html')) {
-            editor.innerHTML = localStorage.getItem('autotext_pure_html');
-        }
-        if(localStorage.getItem('autotext_title')) {
-            document.getElementById('documentTitle').value = localStorage.getItem('autotext_title');
+        // Initiera editorn i standardläget 'snow'
+        var quill = new Quill('#editor', { 
+            modules: { toolbar: '#toolbar' }, 
+            theme: 'snow' 
+        });
+
+        if(localStorage.getItem('autotext_backup')) {
+            try { quill.setContents(JSON.parse(localStorage.getItem('autotext_backup'))); } catch(e){}
         }
 
-        editor.addEventListener('input', function() {
-            localStorage.setItem('autotext_pure_html', editor.innerHTML);
+        quill.on('text-change', function() {
+            localStorage.setItem('autotext_backup', JSON.stringify(quill.getContents()));
             resetAutopilotTimer();
         });
 
-        document.getElementById('documentTitle').addEventListener('input', function() {
-            localStorage.setItem('autotext_title', this.value);
-        });
+        window.undo = function() { quill.history.undo(); }
+        window.redo = function() { quill.history.redo(); }
 
-        // AI-Manuell hantering via markerad text
         window.runAIManual = async function() {
-            const selection = window.getSelection();
-            const selectedText = selection.toString();
-            
-            if (!selectedText || selectedText.trim().length === 0) {
+            const selection = quill.getSelection();
+            if (!selection || selection.length === 0) {
                 alert("Markera den text du vill att AI ska förbättra först!");
                 return;
             }
-
-            // Sparar markeringen för att kunna ersätta rätt text efter API-anropet
-            const range = selection.getRangeAt(0);
-            executeAIAction(selectedText, range, false);
+            const selectedText = quill.getText(selection.index, selection.length);
+            executeAIAction(selectedText, selection.index, selection.length, false);
         }
 
         let autopilotActive = false;
         let autopilotTimer;
         window.toggleAutopilot = function() { autopilotActive = document.getElementById('autopilotToggle').checked; }
         function resetAutopilotTimer() { if (!autopilotActive) return; clearTimeout(autopilotTimer); autopilotTimer = setTimeout(runAIAutopilot, 3000); }
-        
-        async function runAIAutopilot() { 
-            const totalText = editor.innerText.trim(); 
-            if(totalText.length < 5) return; 
-            // Vid autopilot skickar vi hela fältet
-            executeAIAction(totalText, null, true); 
-        }
+        async function runAIAutopilot() { const totalText = quill.getText().trim(); if(totalText.length < 5) return; executeAIAction(totalText, 0, totalText.length, true); }
 
-        // HÄR KÖR VI DET DIREKTA OCH RENA ANROPET
-        async function executeAIAction(text, range, isAutopilot = false) {
+        // Core API Engine
+        async function executeAIAction(text, index, length, isAutopilot = false) {
             let updatedText = "";
             if (isAutopilot && text.trim().split(/\s+/).length < 3) return;
 
+            // Hämta nyckeln dynamiskt från webbläsarens minne
+            const apiKey = setupApiKey();
+            if (!apiKey) {
+                alert("Ingen API-nyckel tillgänglig. Klicka på '🔑 Ändra API-nyckel' i menyraden för att lägga till en.");
+                return;
+            }
+
             try {
-                const systemPrompt = "Du är en professionell svensk textredigerare. Korrigera enbart stavfel och grammatik. Svara ENBART med den färdiga korrigerade meningen, inga hälsningar eller förklaringar.";
-                
-                const response = await fetch("https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct", {
+                const promptInstruction = "Du är en professionell svensk textredigerare. Korrigera enbart rena stavfel och grammatik i följande text. Behåll stilen helt och hållet. Svara ENBART med den färdiga korrigerade texten, inga kommentarer, inga hälsningar, inga citattecken runt svaret:\n\n" + text;
+                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+
+                const response = await fetch(url, {
                     method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${HF_TOKEN}`,
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        inputs: `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n${text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`,
-                        parameters: { max_new_tokens: 150, temperature: 0.1 }
+                        contents: [{ parts: [{ text: promptInstruction }] }]
                     })
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    if(data && data[0] && data[0].generated_text) {
-                        let rawOut = data[0].generated_text;
-                        updatedText = rawOut.split("<|eot_id|>")[0].trim();
+                    if(data && data.candidates && data.candidates[0].content.parts[0].text) {
+                        updatedText = data.candidates[0].content.parts[0].text.trim();
                         updatedText = updatedText.replace(/^"+|"+$/g, '').trim();
                     }
+                } else {
+                    const errorData = await response.text();
+                    console.error("Google API returnerade ett fel:", response.status, errorData);
                 }
             } catch (e) {
-                console.log("Kör lokal reservmotor.");
+                console.error("Nätverksfel vid kommunikation med Google:", e);
             }
 
-            // Oslagbar lokal fallback-motor om nätverket eller uBlock blockerar anropet
+            // Lokal reservmotor (Fallback)
             if (!updatedText) {
                 let temp = text;
                 const ordlista = [
@@ -245,26 +230,21 @@
                 updatedText = temp;
             }
 
-            // SÖMLÖS INSÄTTNING UTAN ATT LAYOUTEN HOPPAR
             if (updatedText && updatedText.trim() !== text.trim()) {
-                if (!isAutopilot && range) {
-                    range.deleteContents();
-                    range.insertNode(document.createTextNode(updatedText));
-                } else {
-                    editor.innerText = updatedText;
-                }
-                localStorage.setItem('autotext_pure_html', editor.innerHTML);
+                quill.updateContents({
+                    ops: [{ retain: index }, { delete: length }, { insert: updatedText }]
+                });
+                quill.setSelection(index, updatedText.length);
             }
         }
 
         window.exportToWord = function() {
-            const htmlContent = editor.innerHTML;
-            const filename = document.getElementById('documentTitle').value.trim() || 'Autotext_Dokument';
+            const htmlContent = quill.getSemanticHTML();
             const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>";
             const footer = "</body></html>";
             const blob = new Blob(['\ufeff' + header + htmlContent + footer], { type: 'application/msword' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = `${filename}.doc`; a.click();
+            const a = document.createElement('a'); a.href = url; a.download = 'Autotext_Dokument.doc'; a.click();
         }
     </script>
 </body>

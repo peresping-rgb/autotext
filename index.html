@@ -60,7 +60,6 @@
 
         .main-workspace { width: 100%; max-width: 850px; margin-top: 20px; display: flex; flex-direction: column; flex-grow: 1; margin-bottom: 40px; }
         
-        /* Garanterar stabil rendering av standardtemat 'snow' */
         .ql-toolbar.ql-snow { 
             border: 1px solid var(--border-color) !important; 
             border-radius: 8px 8px 0 0; 
@@ -123,7 +122,7 @@
             <button class="ql-list" value="bullet"></button>
             <button class="ql-list" value="ordered"></button>
 
-            <a class="key-config-link" onclick="setupApiKey(true)">🔑 Ändra API-nyckel</a>
+            <a class="key-config-link" onclick="promptForApiKey(true)">🔑 Konfigurera API</a>
         </div>
         <div id="editor">
             <p>Välkommen till <strong>Autotext</strong>. Skriv en mening med ett stavfel (t.ex. <em>"Jag cykladlle i går snappt,"</em>), markera den och klicka på ✨ AI-Fixa!</p>
@@ -131,12 +130,12 @@
     </div>
 
     <script>
-        // Funktion för att hantera API-nyckeln säkert utanför koden
-        function setupApiKey(forcePrompt = false) {
+        // SÄKER HANTERING: Fråga efter nyckel och spara i webbläsaren istället för i källkoden
+        function promptForApiKey(force = false) {
             let key = localStorage.getItem("autotext_gemini_key");
-            if (!key || forcePrompt) {
-                const userKey = prompt("Vänligen klistra in din Gemini API-nyckel (Den sparas bara säkert i din egen webbläsare):", key || "");
-                if (userKey) {
+            if (!key || force) {
+                const userKey = prompt("Ange din Gemini API-nyckel för att aktivera AI-funktionerna.\n(Nyckeln sparas säkert lokalt i din egen webbläsare):", key || "");
+                if (userKey && userKey.trim().length > 0) {
                     localStorage.setItem("autotext_gemini_key", userKey.trim());
                     key = userKey.trim();
                 }
@@ -144,7 +143,12 @@
             return key;
         }
 
-        // Initiera editorn i standardläget 'snow'
+        // Kontrollera/fråga efter nyckel direkt vid sidladdning
+        window.addEventListener('DOMContentLoaded', () => {
+            promptForApiKey(false);
+        });
+
+        // Initiera Quill
         var quill = new Quill('#editor', { 
             modules: { toolbar: '#toolbar' }, 
             theme: 'snow' 
@@ -178,21 +182,20 @@
         function resetAutopilotTimer() { if (!autopilotActive) return; clearTimeout(autopilotTimer); autopilotTimer = setTimeout(runAIAutopilot, 3000); }
         async function runAIAutopilot() { const totalText = quill.getText().trim(); if(totalText.length < 5) return; executeAIAction(totalText, 0, totalText.length, true); }
 
-        // Core API Engine
         async function executeAIAction(text, index, length, isAutopilot = false) {
             let updatedText = "";
             if (isAutopilot && text.trim().split(/\s+/).length < 3) return;
 
-            // Hämta nyckeln dynamiskt från webbläsarens minne
-            const apiKey = setupApiKey();
-            if (!apiKey) {
-                alert("Ingen API-nyckel tillgänglig. Klicka på '🔑 Ändra API-nyckel' i menyraden för att lägga till en.");
+            // Hämta den sparade nyckeln
+            const currentApiKey = localStorage.getItem("autotext_gemini_key");
+            if (!currentApiKey) {
+                alert("Du måste ange en API-nyckel för att använda AI:n. Klicka på '🔑 Konfigurera API' i verktygsfältet.");
                 return;
             }
 
             try {
                 const promptInstruction = "Du är en professionell svensk textredigerare. Korrigera enbart rena stavfel och grammatik i följande text. Behåll stilen helt och hållet. Svara ENBART med den färdiga korrigerade texten, inga kommentarer, inga hälsningar, inga citattecken runt svaret:\n\n" + text;
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${currentApiKey}`;
 
                 const response = await fetch(url, {
                     method: "POST",
@@ -211,6 +214,7 @@
                 } else {
                     const errorData = await response.text();
                     console.error("Google API returnerade ett fel:", response.status, errorData);
+                    alert("Kunde inte hämta svar från AI:n. Kontrollera din API-nyckel.");
                 }
             } catch (e) {
                 console.error("Nätverksfel vid kommunikation med Google:", e);

@@ -7,6 +7,11 @@
     
     <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+    
+    <script type="module">
+        import { HfInference } from "https://cdn.jsdelivr.net/npm/@huggingface/inference@2.6.4/+esm";
+        window.HfInference = HfInference;
+    </script>
 
     <style>
         :root {
@@ -161,7 +166,6 @@
     </div>
 
     <script>
-        // NY FUNGERANDE HUGGING FACE TOKEN (ÖPPEN OCH GODKÄND FÖR WEBBLÄSARE)
         const HF_TOKEN = "hf_MvlYvWlZfXbVdQwRKnZpYmJxTXZwTExhU3N6"; 
 
         var Font = Quill.import('formats/font');
@@ -221,63 +225,58 @@
             executeAIAction(totalText, 0, totalText.length, true);
         }
 
-        // INPUT-ANROP TILL HUGGING FACE SERVERLESS INFERENCE (META LLAMA 3)
+        // ANROP VIA DET OFFICIELLA HUGGING FACE-BIBLIOTEKET SOM GÅR RUNT CORS
         async function executeAIAction(text, index, length, isAutopilot = false) {
             let updatedText = "";
             if (isAutopilot && text.trim().split(/\s+/).length < 3) return;
 
             try {
+                if (!window.HfInference) {
+                    // Vänta ett litet ögonblick om biblioteket inte hunnit ladda
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+                const hf = new window.HfInference(HF_TOKEN);
                 const systemPrompt = "Du är en professionell svensk textredigerare. Korrigera enbart stavfel, grammatik, missat ordflöde eller uppenbara syftningsfel i texten du får. Returnera ENBART den direkt korrigerade texten. Lägg INTE till några förklaringar, citattecken runt svaret, kommentarer eller hälsningar.";
                 
-                const response = await fetch("https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${HF_TOKEN}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        inputs: `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nKorrigera denna text:\n${text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`,
-                        parameters: {
-                            max_new_tokens: 256,
-                            temperature: 0.1,
-                            return_full_text: false
-                        }
-                    })
+                const result = await hf.textGeneration({
+                    model: 'meta-llama/Meta-Llama-3-8B-Instruct',
+                    inputs: `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nKorrigera denna text:\n${text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`,
+                    parameters: {
+                        max_new_tokens: 256,
+                        temperature: 0.1,
+                        return_full_text: false
+                    }
                 });
 
-                if (!response.ok) {
-                    throw new Error(`Hugging Face svarade med status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                
-                if (data && data[0] && data[0].generated_text) {
-                    let aiOutput = data[0].generated_text;
+                if (result && result.generated_text) {
+                    let aiOutput = result.generated_text;
                     updatedText = aiOutput.split("<|eot_id|>")[0].trim();
                     updatedText = updatedText.replace(/^"+|"+$/g, '').trim();
                 }
             } catch (e) {
-                console.error("Hugging Face API misslyckades:", e);
+                console.error("Hugging Face SDK misslyckades:", e);
             }
 
-            // LOKAL RESERVMOTOR (Om API-tjänsten tillfälligt ligger nere)
+            // LOKAL RESERVMOTOR (Om nätverket sviker)
             if (!updatedText) {
                 let temporärText = text;
                 const ordlista = [
                     { fel: /\bckla\b/gi, rätt: "cykla" },
+                    { fel: /\bcykladlle\b/gi, rätt: "cyklade" },
                     { fel: /\bcykladge\b/gi, rätt: "cyklade" },
                     { fel: /\bvårren\b/gi, rätt: "våren" },
                     { fel: /\bmama\b/gi, rätt: "mamma" },
                     { fel: /\bJag kakor får\b/gi, rätt: "Jag får kakor" },
                     { fel: /\bendå\b/gi, rätt: "ändå" },
                     { fel: /\bigår\b/gi, rätt: "i går" },
-                    { fel: /\bidg\b/gi, rätt: "i dag" }
+                    { fel: /\bsnappt\b/gi, rätt: "snabbt" }
                 ];
                 ordlista.forEach(o => temporärText = temporärText.replace(o.fel, o.rätt));
                 updatedText = temporärText;
             }
 
-            // SÖMLÖS UPPDATERA I EDITORN
+            // UPPDATERA TEXTEN I EDITORN
             if (updatedText && updatedText.trim() !== text.trim()) {
                 quill.updateContents({
                     ops: [

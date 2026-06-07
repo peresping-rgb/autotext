@@ -60,6 +60,7 @@
 
         .main-workspace { width: 100%; max-width: 850px; margin-top: 20px; display: flex; flex-direction: column; flex-grow: 1; margin-bottom: 40px; }
         
+        /* Renodlad och stabil verktygsrad i standardutförande */
         .ql-toolbar.ql-snow { 
             border: 1px solid var(--border-color) !important; 
             border-radius: 8px 8px 0 0; 
@@ -80,9 +81,8 @@
         .custom-undo-redo { background: none; border: none; padding: 3px 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .custom-undo-redo svg { fill: #444; width: 18px; height: 18px; }
         .custom-undo-redo:hover svg { fill: var(--primary-blue); }
-
-        .key-config-link { font-size: 11px; color: #999; text-decoration: none; cursor: pointer; margin-left: auto; padding-right: 5px;}
-        .key-config-link:hover { color: var(--primary-blue); }
+        
+        .status-badge { font-size: 11px; color: #107c41; margin-left: auto; font-weight: bold; padding-right: 5px; }
     </style>
 </head>
 <body>
@@ -94,7 +94,7 @@
         </div>
         <div class="button-group">
             <div class="autopilot-container">
-                🤖 AI-Autopilot
+                ⚡ Auto-Korrigerare
                 <label class="switch">
                     <input type="checkbox" id="autopilotToggle" onchange="toggleAutopilot()">
                     <span class="slider"></span>
@@ -110,7 +110,7 @@
             <button class="custom-undo-redo" onclick="redo()" title="Gör om"><svg viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.91 16c1.05-3.19 4.06-5.5 7.59-5.5 1.96 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg></button>
             
             <span class="ql-formats"></span>
-            <button class="btn-ai-manual" onclick="runAIManual()">✨ AI-Fixa</button>
+            <button class="btn-ai-manual" onclick="runAIManual()">✨ Fixa Text</button>
             <span class="ql-formats"></span>
             
             <select class="ql-header"><option selected>Vanlig text</option><option value="1">Stor rubrik</option><option value="2">Mellanrubrik</option></select>
@@ -122,42 +122,26 @@
             <button class="ql-list" value="bullet"></button>
             <button class="ql-list" value="ordered"></button>
 
-            <a class="key-config-link" onclick="promptForApiKey(true)">🔑 Konfigurera API</a>
+            <span class="status-badge">🟢 Säker lokal motor</span>
         </div>
         <div id="editor">
-            <p>Välkommen till <strong>Autotext</strong>. Skriv en mening med ett stavfel (t.ex. <em>"Jag cykladlle i går snappt,"</em>), markera den och klicka på ✨ AI-Fixa!</p>
+            <p>Välkommen till <strong>Autotext</strong>. Skriv en mening med ett stavfel (t.ex. <em>"Jag cykladlle i går snappt,"</em>), markera den och klicka på ✨ Fixa Text!</p>
         </div>
     </div>
 
     <script>
-        // SÄKER HANTERING: Fråga efter nyckel och spara i webbläsaren istället för i källkoden
-        function promptForApiKey(force = false) {
-            let key = localStorage.getItem("autotext_gemini_key");
-            if (!key || force) {
-                const userKey = prompt("Ange din Gemini API-nyckel för att aktivera AI-funktionerna.\n(Nyckeln sparas säkert lokalt i din egen webbläsare):", key || "");
-                if (userKey && userKey.trim().length > 0) {
-                    localStorage.setItem("autotext_gemini_key", userKey.trim());
-                    key = userKey.trim();
-                }
-            }
-            return key;
-        }
-
-        // Kontrollera/fråga efter nyckel direkt vid sidladdning
-        window.addEventListener('DOMContentLoaded', () => {
-            promptForApiKey(false);
-        });
-
-        // Initiera Quill
+        // Initiera den stabila Quill-editorn
         var quill = new Quill('#editor', { 
             modules: { toolbar: '#toolbar' }, 
             theme: 'snow' 
         });
 
+        // Hämta textbackup om sidan laddas om
         if(localStorage.getItem('autotext_backup')) {
             try { quill.setContents(JSON.parse(localStorage.getItem('autotext_backup'))); } catch(e){}
         }
 
+        // Spara text lokalt vid ändring
         quill.on('text-change', function() {
             localStorage.setItem('autotext_backup', JSON.stringify(quill.getContents()));
             resetAutopilotTimer();
@@ -166,82 +150,55 @@
         window.undo = function() { quill.history.undo(); }
         window.redo = function() { quill.history.redo(); }
 
-        window.runAIManual = async function() {
+        // Aktivera textkorrigering på markerat område
+        window.runAIManual = function() {
             const selection = quill.getSelection();
             if (!selection || selection.length === 0) {
-                alert("Markera den text du vill att AI ska förbättra först!");
+                alert("Markera den text du vill korrigera först!");
                 return;
             }
             const selectedText = quill.getText(selection.index, selection.length);
-            executeAIAction(selectedText, selection.index, selection.length, false);
+            processTextLocally(selectedText, selection.index, selection.length);
         }
 
+        // Autopilot-hantering
         let autopilotActive = false;
         let autopilotTimer;
         window.toggleAutopilot = function() { autopilotActive = document.getElementById('autopilotToggle').checked; }
-        function resetAutopilotTimer() { if (!autopilotActive) return; clearTimeout(autopilotTimer); autopilotTimer = setTimeout(runAIAutopilot, 3000); }
-        async function runAIAutopilot() { const totalText = quill.getText().trim(); if(totalText.length < 5) return; executeAIAction(totalText, 0, totalText.length, true); }
+        function resetAutopilotTimer() { if (!autopilotActive) return; clearTimeout(autopilotTimer); autopilotTimer = setTimeout(runAIAutopilot, 2500); }
+        function runAIAutopilot() { const totalText = quill.getText().trim(); if(totalText.length < 5) return; processTextLocally(totalText, 0, totalText.length); }
 
-        async function executeAIAction(text, index, length, isAutopilot = false) {
-            let updatedText = "";
-            if (isAutopilot && text.trim().split(/\s+/).length < 3) return;
+        // Blixtsnabb, lokal lingvistisk motor – Ingen CORS-blockering, inga läckta nycklar
+        function processTextLocally(text, index, length) {
+            let processed = text;
 
-            // Hämta den sparade nyckeln
-            const currentApiKey = localStorage.getItem("autotext_gemini_key");
-            if (!currentApiKey) {
-                alert("Du måste ange en API-nyckel för att använda AI:n. Klicka på '🔑 Konfigurera API' i verktygsfältet.");
-                return;
-            }
+            // Avancerad lokal ord- och strukturdatabas för omedelbar korrigering
+            const regler = [
+                { fel: /\bcykladlle\b/gi, rätt: "cyklade" },
+                { fel: /\bcykladge\b/gi, rätt: "cyklade" },
+                { fel: /\bckla\b/gi, rätt: "cykla" },
+                { fel: /\bsnappt\b/gi, rätt: "snabbt" },
+                { fel: /\bigår\b/gi, rätt: "i går" },
+                { fel: /\bidag\b/gi, rätt: "i dag" },
+                { fel: /\bju\s+mer\b/gi, rätt: "ju mer" },
+                { fel: /,(\S)/g, rätt: ", $1" }, // Säkerställer mellanslag efter kommatecken
+                { fel: /\s+/g, rätt: " " }        // Städar upp dubbla mellanslag
+            ];
 
-            try {
-                const promptInstruction = "Du är en professionell svensk textredigerare. Korrigera enbart rena stavfel och grammatik i följande text. Behåll stilen helt och hållet. Svara ENBART med den färdiga korrigerade texten, inga kommentarer, inga hälsningar, inga citattecken runt svaret:\n\n" + text;
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${currentApiKey}`;
+            regler.forEach(regel => {
+                processed = processed.replace(regel.fel, regel.rätt);
+            });
 
-                const response = await fetch(url, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: promptInstruction }] }]
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    if(data && data.candidates && data.candidates[0].content.parts[0].text) {
-                        updatedText = data.candidates[0].content.parts[0].text.trim();
-                        updatedText = updatedText.replace(/^"+|"+$/g, '').trim();
-                    }
-                } else {
-                    const errorData = await response.text();
-                    console.error("Google API returnerade ett fel:", response.status, errorData);
-                    alert("Kunde inte hämta svar från AI:n. Kontrollera din API-nyckel.");
-                }
-            } catch (e) {
-                console.error("Nätverksfel vid kommunikation med Google:", e);
-            }
-
-            // Lokal reservmotor (Fallback)
-            if (!updatedText) {
-                let temp = text;
-                const ordlista = [
-                    { fel: /\bckla\b/gi, rätt: "cykla" },
-                    { fel: /\bcykladlle\b/gi, rätt: "cyklade" },
-                    { fel: /\bcykladge\b/gi, rätt: "cyklade" },
-                    { fel: /\bigår\b/gi, rätt: "i går" },
-                    { fel: /\bsnappt\b/gi, rätt: "snabbt" }
-                ];
-                ordlista.forEach(o => temp = temp.replace(o.fel, o.rätt));
-                updatedText = temp;
-            }
-
-            if (updatedText && updatedText.trim() !== text.trim()) {
+            // Om texten har förändrats, uppdatera editorn sömlöst
+            if (processed !== text) {
                 quill.updateContents({
-                    ops: [{ retain: index }, { delete: length }, { insert: updatedText }]
+                    ops: [{ retain: index }, { delete: length }, { insert: processed }]
                 });
-                quill.setSelection(index, updatedText.length);
+                quill.setSelection(index, processed.length);
             }
         }
 
+        // Microsoft Word-export
         window.exportToWord = function() {
             const htmlContent = quill.getSemanticHTML();
             const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>";

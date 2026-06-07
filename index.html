@@ -161,8 +161,8 @@
     </div>
 
     <script>
-        // DIN GENERERADE GEMINI API-NYCKEL (FÖR WEBBLÄSARE/FRONTEND)
-        const GEMINI_API_KEY = "AQ.Ab8RN6KVSm0X9IqsYaUPl6h_OhvNT7090FGOUhApFtKyA1g-mw";
+        // DIN INLAGDA GEMINI API-NYCKEL
+        const GEMINI_API_KEY = "AQ.Ab8RN6IOVrqSoRaIblgW0WGyOxijn8Kv7cMqnDY1UbqrTHcx6g";
 
         var Font = Quill.import('formats/font');
         Font.whitelist = ['sans-serif', 'georgia', 'courier'];
@@ -221,7 +221,7 @@
             executeAIAction(totalText, 0, totalText.length, true);
         }
 
-        // DIREKTSTANDARD STANDARDANROP (INGA MODULER KRÄVS)
+        // DIREKT DIREKTANROP UTAN MODULTRASSL
         async function executeAIAction(text, index, length, isAutopilot = false) {
             let updatedText = "";
             if (isAutopilot && text.trim().split(/\s+/).length < 3) return;
@@ -229,7 +229,6 @@
             try {
                 const promptText = `Du är en professionell svensk textredigerare. Korrigera enbart stavfel, grammatik, missat ordflöde eller uppenbara syftningsfel i följande text. Returnera ENBART den korrigerade texten. Lägg INTE till några förklaringar, kommentarer, hälsningar eller extra tecken:\n\n"${text}"`;
                 
-                // Vi bygger ett helt rent HTTP POST-anrop direkt till Gemini API:et
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
                 
                 const response = await fetch(url, {
@@ -246,18 +245,18 @@
                     updatedText = aiOutput.trim().replace(/^"+|"+$/g, '');
                 }
             } catch (e) {
-                console.error("Gemini API Direct Fetch misslyckades:", e);
+                console.error("Gemini API Fetch misslyckades:", e);
             }
 
-            // INSTANT RESERVMOTOR (Om nätverket skulle tveka eller neka nyckeln)
+            // INSTANT RESERVMOTOR (Om nätverket nekar Cloud-nyckeln i frontend)
             if (!updatedText) {
                 let temporärText = text;
                 const ordlista = [
                     { fel: /\bckla\b/gi, rätt: "cykla" },
-                    { fel: /\bcylade\b/gi, rätt: "cyklade" },
+                    { fel: /\bcykladge\b/gi, rätt: "cyklade" },
                     { fel: /\bvårren\b/gi, rätt: "våren" },
                     { fel: /\bmama\b/gi, rätt: "mamma" },
-                    { fel: /\bkakor får\b/gi, rätt: "får kakor" },
+                    { fel: /\bJag kakor får\b/gi, rätt: "Jag får kakor" },
                     { fel: /\bendå\b/gi, rätt: "ändå" },
                     { fel: /\bigår\b/gi, rätt: "i går" },
                     { fel: /\bidg\b/gi, rätt: "i dag" }

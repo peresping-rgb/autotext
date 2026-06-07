@@ -7,11 +7,6 @@
     
     <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
-    
-    <script type="module">
-        import { HfInference } from "https://cdn.jsdelivr.net/npm/@huggingface/inference@2.6.4/+esm";
-        window.HfInference = HfInference;
-    </script>
 
     <style>
         :root {
@@ -225,40 +220,59 @@
             executeAIAction(totalText, 0, totalText.length, true);
         }
 
-        // ANROP VIA DET OFFICIELLA HUGGING FACE-BIBLIOTEKET SOM GÅR RUNT CORS
+        // HÄR KÖR VI ANROPET VIA EN PROXY-TUNNEL FÖR ATT LURAS FÖRBI FIREFOX CORS-FILTER
         async function executeAIAction(text, index, length, isAutopilot = false) {
             let updatedText = "";
             if (isAutopilot && text.trim().split(/\s+/).length < 3) return;
 
             try {
-                if (!window.HfInference) {
-                    // Vänta ett litet ögonblick om biblioteket inte hunnit ladda
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                }
-                
-                const hf = new window.HfInference(HF_TOKEN);
                 const systemPrompt = "Du är en professionell svensk textredigerare. Korrigera enbart stavfel, grammatik, missat ordflöde eller uppenbara syftningsfel i texten du får. Returnera ENBART den direkt korrigerade texten. Lägg INTE till några förklaringar, citattecken runt svaret, kommentarer eller hälsningar.";
                 
-                const result = await hf.textGeneration({
-                    model: 'meta-llama/Meta-Llama-3-8B-Instruct',
+                const targetUrl = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct";
+                const payload = {
                     inputs: `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nKorrigera denna text:\n${text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`,
                     parameters: {
                         max_new_tokens: 256,
                         temperature: 0.1,
                         return_full_text: false
                     }
+                };
+
+                // Vi skickar anropet via allorigins öppna proxy-tunnel
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
+                const response = await fetch(proxyUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    // Vi skickar med autentiseringen och payloaden inuti proxy-kroppen
+                    body: JSON.stringify({
+                        headers: {
+                            "Authorization": `Bearer ${HF_TOKEN}`,
+                            "Content-Type": "application/json"
+                        },
+                        method: "POST",
+                        body: JSON.stringify(payload)
+                    })
                 });
 
-                if (result && result.generated_text) {
-                    let aiOutput = result.generated_text;
-                    updatedText = aiOutput.split("<|eot_id|>")[0].trim();
-                    updatedText = updatedText.replace(/^"+|"+$/g, '').trim();
+                if (response.ok) {
+                    const wrapperData = await response.json();
+                    // allorigins skickar tillbaka svaret som en sträng i fältet 'contents'
+                    const actualData = JSON.parse(wrapperData.contents);
+                    
+                    if (actualData && actualData[0] && actualData[0].generated_text) {
+                        let aiOutput = actualData[0].generated_text;
+                        updatedText = aiOutput.split("<|eot_id|>")[0].trim();
+                        updatedText = updatedText.replace(/^"+|"+$/g, '').trim();
+                    }
                 }
             } catch (e) {
-                console.error("Hugging Face SDK misslyckades:", e);
+                console.error("Tunnel-anrop till Hugging Face misslyckades:", e);
             }
 
-            // LOKAL RESERVMOTOR (Om nätverket sviker)
+            // LOKAL RESERVMOTOR (Om nätverket eller proxyn har en dålig dag)
             if (!updatedText) {
                 let temporärText = text;
                 const ordlista = [
@@ -270,44 +284,4 @@
                     { fel: /\bJag kakor får\b/gi, rätt: "Jag får kakor" },
                     { fel: /\bendå\b/gi, rätt: "ändå" },
                     { fel: /\bigår\b/gi, rätt: "i går" },
-                    { fel: /\bsnappt\b/gi, rätt: "snabbt" }
-                ];
-                ordlista.forEach(o => temporärText = temporärText.replace(o.fel, o.rätt));
-                updatedText = temporärText;
-            }
-
-            // UPPDATERA TEXTEN I EDITORN
-            if (updatedText && updatedText.trim() !== text.trim()) {
-                quill.updateContents({
-                    ops: [
-                        { retain: index },       
-                        { delete: length },      
-                        { insert: updatedText }  
-                    ]
-                });
-                quill.setSelection(index, updatedText.length);
-            }
-        }
-
-        window.cleanFormatting = function() {
-            const selection = quill.getSelection();
-            if (selection) { quill.removeFormat(selection.index, selection.length); } 
-            else { quill.removeFormat(0, quill.getLength()); }
-        }
-
-        window.exportToWord = function() {
-            const htmlContent = quill.getSemanticHTML();
-            const fileName = document.getElementById('documentTitle').value.trim() || 'Autotext_Dokument';
-            
-            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>";
-            const footer = "</body></html>";
-            const blob = new Blob(['\ufeff' + header + htmlContent + footer], { type: 'application/msword' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); 
-            a.href = url; 
-            a.download = `${fileName}.doc`; 
-            a.click();
-        }
-    </script>
-</body>
-</html>
+                    { fel: /\bsnappt\b/gi, rätt: "snabbt

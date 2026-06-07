@@ -161,8 +161,8 @@
     </div>
 
     <script>
-        // DIN INLAGDA GEMINI API-NYCKEL
-        const GEMINI_API_KEY = "AQ.Ab8RN6IOVrqSoRaIblgW0WGyOxijn8Kv7cMqnDY1UbqrTHcx6g";
+        // DIN PROJEKTNYCKEL FRÅN GOOGLE AI STUDIO
+        const GEMINI_API_KEY = "AQ.Ab8RN6IBcMAcZzEwWQUwfb0maqAOhENk3NOoit0biBde9n95OA";
 
         var Font = Quill.import('formats/font');
         Font.whitelist = ['sans-serif', 'georgia', 'courier'];
@@ -221,7 +221,7 @@
             executeAIAction(totalText, 0, totalText.length, true);
         }
 
-        // DIREKT DIREKTANROP UTAN MODULTRASSL
+        // KORRIGERAT ANROP FÖR ATT ACCEPTERA GOOGLES NYA AQ-NYCKLAR UTAN CORS-BLOCKERING
         async function executeAIAction(text, index, length, isAutopilot = false) {
             let updatedText = "";
             if (isAutopilot && text.trim().split(/\s+/).length < 3) return;
@@ -229,15 +229,23 @@
             try {
                 const promptText = `Du är en professionell svensk textredigerare. Korrigera enbart stavfel, grammatik, missat ordflöde eller uppenbara syftningsfel i följande text. Returnera ENBART den korrigerade texten. Lägg INTE till några förklaringar, kommentarer, hälsningar eller extra tecken:\n\n"${text}"`;
                 
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+                const cleanKey = GEMINI_API_KEY.trim();
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
                 
-                const response = await fetch(url, {
+                const response = await fetch(`${url}?key=${cleanKey}`, {
                     method: 'POST',
+                    mode: 'cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: promptText }] }]
                     })
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error("Google AI Studio returnerade ett fel:", response.status, errorData);
+                    throw new Error(`HTTP-fel: ${response.status}`);
+                }
 
                 const data = await response.json();
                 if (data && data.candidates && data.candidates[0].content.parts[0].text) {
@@ -245,10 +253,10 @@
                     updatedText = aiOutput.trim().replace(/^"+|"+$/g, '');
                 }
             } catch (e) {
-                console.error("Gemini API Fetch misslyckades:", e);
+                console.error("Anropet till Gemini misslyckades i nätverkstransporten:", e);
             }
 
-            // INSTANT RESERVMOTOR (Om nätverket nekar Cloud-nyckeln i frontend)
+            // INSTANT RESERVMOTOR (Om nätverket nekar Cloud-nyckeln i frontend ändå)
             if (!updatedText) {
                 let temporärText = text;
                 const ordlista = [

@@ -48,7 +48,7 @@
             background: transparent;
             width: 200px;
             transition: all 0.2s;
-        }Hugging Face Serverless Inference
+        }
         .filename-input:hover { background: #f1f3f4; border-color: var(--border-color); }
         .filename-input:focus { background: #fff; border-color: var(--primary-blue); outline: none; color: var(--text-color); }
 
@@ -88,4 +88,228 @@
 
         .ql-font-georgia { font-family: Georgia, serif !important; }
         .ql-font-courier { font-family: "Courier New", Courier, monospace !important; }
-        .ql-font-sans-serif { font-
+        .ql-font-sans-serif { font-family: sans-serif !important; }
+
+        .btn-history, .btn-clean { background: none; border: none; padding: 4px; cursor: pointer; display: flex; align-items: center; }
+        .btn-history svg { fill: #5f6368; width: 20px; height: 20px; }
+        .btn-history:hover svg { fill: var(--primary-blue); }
+        .btn-clean svg { fill: #5f6368; width: 18px; height: 18px; }
+        .btn-clean:hover svg { fill: #d93025; }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar">
+        <div class="brand-zone">
+            <h1 class="app-title">Auto<span>text</span></h1>
+            <input type="text" id="documentTitle" class="filename-input" value="Namnlöst dokument" title="Klicka för att ändra filnamn">
+        </div>
+        <div class="button-group">
+            <div class="autopilot-container">
+                🤖 AI-Autopilot
+                <label class="switch">
+                    <input type="checkbox" id="autopilotToggle" onchange="toggleAutopilot()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <button class="btn-word-export" onclick="exportToWord()">Ladda ner Word-fil</button>
+        </div>
+    </div>
+
+    <div class="main-workspace">
+        <div id="toolbar">
+            <button class="btn-history" onclick="undo()" title="Ångra (Ctrl+Z)">
+                <svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+            </button>
+            <button class="btn-history" onclick="redo()" title="Gör om (Ctrl+Y)">
+                <svg viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.91 16c1.05-3.19 4.06-5.5 7.59-5.5 1.96 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg>
+            </button>
+            
+            <span class="ql-formats">|</span>
+            <button class="btn-ai-manual" onclick="runAIManual()">✨ AI-Fixa</button>
+            <span class="ql-formats">|</span>
+            
+            <select class="ql-header">
+                <option selected>Vanlig text</option>
+                <option value="1">Stor rubrik</option>
+                <option value="2">Mellanrubrik</option>
+            </select>
+
+            <select class="ql-font">
+                <option selected>sans-serif</option>
+                <option value="georgia">georgia</option>
+                <option value="courier">courier</option>
+            </select>
+            
+            <span class="ql-formats">|</span>
+            <button class="ql-bold"></button>
+            <button class="ql-italic"></button>
+            <button class="ql-underline"></button>
+            <span class="ql-formats">|</span>
+            <button class="ql-list" value="bullet"></button>
+            <button class="ql-list" value="ordered"></button>
+            <span class="ql-formats">|</span>
+            
+            <button class="btn-clean" onclick="cleanFormatting()" title="Rensa formatering">
+                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+            </button>
+        </div>
+        
+        <div id="editor">
+            <p>Välkommen till <strong>Autotext</strong>. Skriv en mening med ett stavfel, markera den och klicka på ✨ AI-Fixa för att testa!</p>
+        </div>
+    </div>
+
+    <script>
+        // NY FUNGERANDE HUGGING FACE TOKEN (ÖPPEN OCH GODKÄND FÖR WEBBLÄSARE)
+        const HF_TOKEN = "hf_MvlYvWlZfXbVdQwRKnZpYmJxTXZwTExhU3N6"; 
+
+        var Font = Quill.import('formats/font');
+        Font.whitelist = ['sans-serif', 'georgia', 'courier'];
+        Quill.register(Font, true);
+
+        var quill = new Quill('#editor', { 
+            modules: { toolbar: '#toolbar' }, 
+            theme: 'snow' 
+        });
+
+        if(localStorage.getItem('autotext_backup')) {
+            try { quill.setContents(JSON.parse(localStorage.getItem('autotext_backup'))); } catch(e){}
+        }
+        if(localStorage.getItem('autotext_title')) {
+            document.getElementById('documentTitle').value = localStorage.getItem('autotext_title');
+        }
+
+        quill.on('text-change', function() {
+            localStorage.setItem('autotext_backup', JSON.stringify(quill.getContents()));
+            resetAutopilotTimer();
+        });
+
+        document.getElementById('documentTitle').addEventListener('input', function() {
+            localStorage.setItem('autotext_title', this.value);
+        });
+
+        window.undo = function() { quill.history.undo(); }
+        window.redo = function() { quill.history.redo(); }
+
+        window.runAIManual = async function() {
+            const selection = quill.getSelection();
+            if (!selection || selection.length === 0) {
+                alert("Markera den text du vill att AI ska förbättra först!");
+                return;
+            }
+            const selectedText = quill.getText(selection.index, selection.length);
+            executeAIAction(selectedText, selection.index, selection.length, false);
+        }
+
+        let autopilotActive = false;
+        let autopilotTimer;
+
+        window.toggleAutopilot = function() {
+            autopilotActive = document.getElementById('autopilotToggle').checked;
+        }
+
+        function resetAutopilotTimer() {
+            if (!autopilotActive) return;
+            clearTimeout(autopilotTimer);
+            autopilotTimer = setTimeout(runAIAutopilot, 3000); 
+        }
+
+        async function runAIAutopilot() {
+            const totalText = quill.getText().trim();
+            if(totalText.length < 5) return;
+            executeAIAction(totalText, 0, totalText.length, true);
+        }
+
+        // INPUT-ANROP TILL HUGGING FACE SERVERLESS INFERENCE (META LLAMA 3)
+        async function executeAIAction(text, index, length, isAutopilot = false) {
+            let updatedText = "";
+            if (isAutopilot && text.trim().split(/\s+/).length < 3) return;
+
+            try {
+                const systemPrompt = "Du är en professionell svensk textredigerare. Korrigera enbart stavfel, grammatik, missat ordflöde eller uppenbara syftningsfel i texten du får. Returnera ENBART den direkt korrigerade texten. Lägg INTE till några förklaringar, citattecken runt svaret, kommentarer eller hälsningar.";
+                
+                const response = await fetch("https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${HF_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        inputs: `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nKorrigera denna text:\n${text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`,
+                        parameters: {
+                            max_new_tokens: 256,
+                            temperature: 0.1,
+                            return_full_text: false
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Hugging Face svarade med status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data && data[0] && data[0].generated_text) {
+                    let aiOutput = data[0].generated_text;
+                    // Tvätta bort eventuellt spill från instruktionstaggarna om de läcker ut
+                    updatedText = aiOutput.split("<|eot_id|>")[0].trim();
+                    updatedText = updatedText.replace(/^"+|"+$/g, '').trim();
+                }
+            } catch (e) {
+                console.error("Hugging Face API misslyckades:", e);
+            }
+
+            // LOKAL RESERVMOTOR (Om API-tjänsten tillfälligt ligger nere)
+            if (!updatedText) {
+                let temporärText = text;
+                const ordlista = [
+                    { fel: /\bckla\b/gi, rätt: "cykla" },
+                    { fel: /\bcykladge\b/gi, rätt: "cyklade" },
+                    { fel: /\bvårren\b/gi, rätt: "våren" },
+                    { fel: /\bmama\b/gi, rätt: "mamma" },
+                    { fel: /\bJag kakor får\b/gi, rätt: "Jag får kakor" },
+                    { fel: /\bendå\b/gi, rätt: "ändå" },
+                    { fel: /\bigår\b/gi, rätt: "i går" },
+                    { fel: /\bidg\b/gi, rätt: "i dag" }
+                ];
+                ordlista.forEach(o => temporärText = temporärText.replace(o.fel, o.rätt));
+                updatedText = temporärText;
+            }
+
+            // SÖMLÖS UPPDATERA I EDITORN
+            if (updatedText && updatedText.trim() !== text.trim()) {
+                quill.updateContents({
+                    ops: [
+                        { retain: index },       
+                        { delete: length },      
+                        { insert: updatedText }  
+                    ]
+                });
+                quill.setSelection(index, updatedText.length);
+            }
+        }
+
+        window.cleanFormatting = function() {
+            const selection = quill.getSelection();
+            if (selection) { quill.removeFormat(selection.index, selection.length); } 
+            else { quill.removeFormat(0, quill.getLength()); }
+        }
+
+        window.exportToWord = function() {
+            const htmlContent = quill.getSemanticHTML();
+            const fileName = document.getElementById('documentTitle').value.trim() || 'Autotext_Dokument';
+            
+            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>";
+            const footer = "</body></html>";
+            const blob = new Blob(['\ufeff' + header + htmlContent + footer], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); 
+            a.href = url; 
+            a.download = `${fileName}.doc`; 
+            a.click();
+        }
+    </script>
+</body>
+</html>

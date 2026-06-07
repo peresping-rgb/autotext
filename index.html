@@ -17,6 +17,7 @@
             --primary-blue: #1a73e8;
             --ai-purple: #9333ea;
             --success-green: #107c41;
+            --warning-amber: #d97706;
         }
 
         body {
@@ -47,6 +48,11 @@
 
         .button-group { display: flex; gap: 12px; align-items: center; }
         button { border: none; padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        
+        /* KNAPPEN FÖR API-NYCKEL - NU SUPERTYDLIG HÄR UPPE */
+        .btn-key-config { background-color: #f1f3f4; color: #3c4043; border: 1px solid var(--border-color); }
+        .btn-key-config:hover { background-color: #e8eaed; color: var(--text-color); }
+
         .btn-word-export { background-color: var(--success-green); color: white; }
         .btn-word-export:hover { background-color: #0b592e; }
 
@@ -60,7 +66,6 @@
 
         .main-workspace { width: 100%; max-width: 850px; margin-top: 20px; display: flex; flex-direction: column; flex-grow: 1; margin-bottom: 40px; }
         
-        /* Stabiliserar verktygsfältet */
         .ql-toolbar.ql-snow { 
             border: 1px solid var(--border-color) !important; 
             border-radius: 8px 8px 0 0; 
@@ -73,9 +78,6 @@
 
         .btn-ai-manual { background: linear-gradient(45deg, var(--primary-blue), var(--ai-purple)); color: white; box-shadow: 0 2px 6px rgba(26, 115, 232, 0.2); font-weight: bold; border-radius: 4px; padding: 4px 12px; margin-right: 10px; cursor: pointer; }
         .btn-ai-manual:hover { background: linear-gradient(45deg, #1557b0, #7928ca); }
-
-        .key-config-link { font-size: 12px; color: #888; text-decoration: none; cursor: pointer; float: right; margin-top: 6px; }
-        .key-config-link:hover { color: var(--primary-blue); }
     </style>
 </head>
 <body>
@@ -86,6 +88,8 @@
             <input type="text" id="documentTitle" class="filename-input" value="Namnlöst dokument">
         </div>
         <div class="button-group">
+            <button class="btn-key-config" onclick="promptForKey(true)">🔑 Ändra API-nyckel</button>
+            
             <div class="autopilot-container">
                 🤖 AI-Autopilot
                 <label class="switch">
@@ -118,7 +122,6 @@
                 <button class="ql-list" value="bullet"></button>
                 <button class="ql-list" value="ordered"></button>
             </span>
-            <a class="key-config-link" onclick="promptForKey(true)">🔑 Ändra API-nyckel</a>
         </div>
         
         <div id="editor">
@@ -127,11 +130,10 @@
     </div>
 
     <script>
-        // SÄKER HANTERING: Fråga efter nyckel och spara den enbart lokalt i webbläsaren
         function promptForKey(force = false) {
             let key = localStorage.getItem("autotext_gemini_pure_key");
             if (!key || force) {
-                const userKey = prompt("Ange din Gemini API-nyckel (Hämtas från Google AI Studio):\nNyckeln sparas bara lokalt i din egen webbläsare och skickas aldrig till GitHub.", key || "");
+                const userKey = prompt("Klistra in din Gemini API-nyckel från Google AI Studio här:\n(Den sparas bara lokalt i din webbläsare)", key || "");
                 if (userKey && userKey.trim().length > 0) {
                     localStorage.setItem("autotext_gemini_pure_key", userKey.trim());
                     key = userKey.trim();
@@ -140,13 +142,16 @@
             return key;
         }
 
-        // Initiera Quill med det inbyggda standardtemat 'snow'
+        // Kontrollera nyckel direkt vid start
+        window.addEventListener('DOMContentLoaded', () => {
+            promptForKey(false);
+        });
+
         var quill = new Quill('#editor', { 
             modules: { toolbar: '#toolbar' }, 
             theme: 'snow' 
         });
 
-        // Läs in textbackup om sidan laddas om
         if(localStorage.getItem('autotext_backup')) {
             try { quill.setContents(JSON.parse(localStorage.getItem('autotext_backup'))); } catch(e){}
         }
@@ -156,7 +161,6 @@
             resetAutopilotTimer();
         });
 
-        // Kör AI manuellt på markerat område
         window.runAIManual = async function() {
             const selection = quill.getSelection();
             if (!selection || selection.length === 0) {
@@ -173,7 +177,6 @@
         function resetAutopilotTimer() { if (!autopilotActive) return; clearTimeout(autopilotTimer); autopilotTimer = setTimeout(runAIAutopilot, 3000); }
         function runAIAutopilot() { const totalText = quill.getText().trim(); if(totalText.length < 5) return; executeAI(totalText, 0, totalText.length); }
 
-        // AI-Motor
         async function executeAI(text, index, length) {
             const apiKey = promptForKey(false);
             if (!apiKey) {
@@ -194,7 +197,7 @@
                 if (response.ok) {
                     const data = await response.json();
                     let updatedText = data.candidates[0].content.parts[0].text.trim();
-                    updatedText = updatedText.replace(/^"+|"+$/g, '').trim(); // Ta bort eventuella citattecken i svaret
+                    updatedText = updatedText.replace(/^"+|"+$/g, '').trim();
 
                     if (updatedText && updatedText !== text.trim()) {
                         quill.updateContents({
@@ -202,7 +205,7 @@
                         });
                     }
                 } else {
-                    alert("Kunde inte hämta svar från AI:n. Kontrollera att din API-nyckel är giltig och inte spärrad.");
+                    alert("Kunde inte hämta svar. Kontrollera att din nyckel är aktiv i Google AI Studio.");
                 }
             } catch (e) {
                 console.error("Nätverksfel:", e);

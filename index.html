@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Autotext - Skrivrummet</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
-
     <style>
         :root {
             --bg-color: #f4f5f7;
@@ -24,6 +21,7 @@
             margin: 0; padding: 0;
             display: flex; flex-direction: column; align-items: center;
             height: 100vh;
+            color: var(--text-color);
         }
 
         .header-bar {
@@ -31,6 +29,7 @@
             box-sizing: border-box; display: flex; justify-content: space-between;
             align-items: center; border-bottom: 1px solid var(--border-color);
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            z-index: 10;
         }
 
         .brand-zone { display: flex; align-items: center; gap: 16px; }
@@ -57,11 +56,14 @@
         input:checked + .slider { background-color: var(--ai-purple); }
         input:checked + .slider:before { transform: translateX(18px); }
 
-        /* ROBUST EGEN DESIGN FÖR VERKTYGSFÄLTET SOM INTE KAN KOLLAPSA */
-        #custom-toolbar {
+        .main-workspace { width: 100%; max-width: 850px; margin-top: 20px; display: flex; flex-direction: column; flex-grow: 1; margin-bottom: 40px; box-sizing: border-box; }
+        
+        /* FIXERAT OCH GARANDERAT VERKTYGSFÄLT OVERST */
+        .custom-toolbar {
             width: 100%; box-sizing: border-box; background: white;
             border: 1px solid var(--border-color); border-radius: 8px 8px 0 0;
-            padding: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            padding: 10px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            border-bottom: none;
         }
 
         .btn-ai-manual { 
@@ -71,24 +73,28 @@
         }
         .btn-ai-manual:hover { background: linear-gradient(45deg, #1557b0, #7928ca); transform: translateY(-1px); }
 
-        .toolbar-select, .ql-header {
-            padding: 6px 10px; border: 1px solid var(--border-color); 
-            border-radius: 6px; background: #fff; font-size: 13px; font-weight: 500; color: #444; cursor: pointer;
-        }
-
         .btn-tool {
             background: #f8f9fa; border: 1px solid var(--border-color); color: #444;
-            padding: 6px 12px; font-size: 13px; font-weight: bold; border-radius: 6px;
+            padding: 6px 12px; font-size: 13px; font-weight: bold; border-radius: 6px; transition: all 0.15s;
         }
-        .btn-tool:hover { background: #f1f3f4; }
+        .btn-tool:hover { background: #f1f3f4; border-color: #adafb3; }
+        .btn-tool:active { background: #e4e6e8; }
 
         .divider-line { width: 1px; height: 20px; background-color: var(--border-color); margin: 0 4px; }
 
-        .main-workspace { width: 100%; max-width: 850px; margin-top: 20px; display: flex; flex-direction: column; flex-grow: 1; margin-bottom: 40px; }
+        /* FRISTÅENDE TEXTYTA SOM ALDRIG KAN KOLLAPSA */
+        .editor-container { 
+            width: 100%; box-sizing: border-box;
+            border: 1px solid var(--border-color); border-radius: 0 0 8px 8px; 
+            background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.04); 
+            flex-grow: 1; display: flex; flex-direction: column;
+            overflow-y: auto;
+        }
         
-        /* REN, STABIL EDITOR-CONTAINER UTAN EXTERN BEROENDE-CSS */
-        .ql-container { border: 1px solid var(--border-color) !important; border-radius: 0 0 8px 8px; background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.04); flex-grow: 1; display: flex; flex-direction: column; }
-        .ql-editor { min-height: 500px; padding: 40px 50px !important; line-height: 1.6; font-size: 16px; flex-grow: 1; outline: none; white-space: pre-wrap; }
+        .editor-body { 
+            min-height: 500px; padding: 40px 50px; line-height: 1.6; 
+            font-size: 16px; flex-grow: 1; outline: none; box-sizing: border-box;
+        }
 
         .btn-history { background: none; border: none; padding: 4px; cursor: pointer; display: flex; align-items: center; }
         .btn-history svg { fill: #5f6368; width: 18px; height: 18px; }
@@ -115,72 +121,86 @@
     </div>
 
     <div class="main-workspace">
-        <div id="custom-toolbar">
-            <button class="btn-history" onclick="undo()" title="Ångra"><svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg></button>
-            <button class="btn-history" onclick="redo()" title="Gör om"><svg viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.91 16c1.05-3.19 4.06-5.5 7.59-5.5 1.96 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg></button>
+        <div class="custom-toolbar">
+            <button class="btn-history" onclick="executeCmd('undo')" title="Ångra"><svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg></button>
+            <button class="btn-history" onclick="executeCmd('redo')" title="Gör om"><svg viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.91 16c1.05-3.19 4.06-5.5 7.59-5.5 1.96 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg></button>
             
             <div class="divider-line"></div>
             <button class="btn-ai-manual" onclick="runAIManual()">✨ AI-Fixa</button>
             <div class="divider-line"></div>
-            
-            <select class="ql-header">
-                <option value="" selected>Vanlig text</option>
-                <option value="1">Stor rubrik</option>
-                <option value="2">Mellanrubrik</option>
-            </select>
 
-            <button class="ql-bold btn-tool" title="Fetstil">B</button>
-            <button class="ql-italic btn-tool" title="Kursiv">I</button>
-            <button class="ql-underline btn-tool" title="Understruken">U</button>
+            <button class="btn-tool" onclick="executeCmd('bold')" title="Fetstil">B</button>
+            <button class="btn-tool" onclick="executeCmd('italic')" title="Kursiv">I</button>
+            <button class="btn-tool" onclick="executeCmd('underline')" title="Understruken">U</button>
             
             <div class="divider-line"></div>
-            <button class="ql-list btn-tool" value="bullet" title="Punktlista">• Lista</button>
-            <button class="ql-list btn-tool" value="ordered" title="Numrerad lista">1. Lista</button>
+            <button class="btn-tool" onclick="executeCmd('insertUnorderedList')" title="Punktlista">• Lista</button>
+            <button class="btn-tool" onclick="executeCmd('insertOrderedList')" title="Numrerad lista">1. Lista</button>
         </div>
         
-        <div id="editor">
-            <p>Välkommen till <strong>Autotext</strong>. Skriv en mening med ett stavfel, markera den och klicka på ✨ AI-Fixa för att testa!</p>
+        <div class="editor-container">
+            <div id="editor" class="editor-body" contenteditable="true">
+                Välkommen till <strong>Autotext</strong>. Skriv en mening med ett stavfel (t.ex. <em>"Jag cykladlle i går snappt,"</em>), markera meningen och klicka på ✨ AI-Fixa för att testa!
+            </div>
         </div>
     </div>
 
     <script>
         const HF_TOKEN = "hf_MvlYvWlZfXbVdQwRKnZpYmJxTXZwTExhU3N6"; 
+        const editor = document.getElementById('editor');
 
-        // Initiera Quill med vårt anpassade verktygsfält
-        var quill = new Quill('#editor', { 
-            modules: { toolbar: '#custom-toolbar' },
-            theme: 'sans' // Använder bas-temat utan extern CSS-layout-påverkan
-        });
-
-        if(localStorage.getItem('autotext_backup')) {
-            try { quill.setContents(JSON.parse(localStorage.getItem('autotext_backup'))); } catch(e){}
+        // Formateringskommandon
+        function executeCmd(command) {
+            document.execCommand(command, false, null);
+            editor.focus();
         }
 
-        quill.on('text-change', function() {
-            localStorage.setItem('autotext_backup', JSON.stringify(quill.getContents()));
+        // Backuphantering
+        if(localStorage.getItem('autotext_pure_html')) {
+            editor.innerHTML = localStorage.getItem('autotext_pure_html');
+        }
+        if(localStorage.getItem('autotext_title')) {
+            document.getElementById('documentTitle').value = localStorage.getItem('autotext_title');
+        }
+
+        editor.addEventListener('input', function() {
+            localStorage.setItem('autotext_pure_html', editor.innerHTML);
             resetAutopilotTimer();
         });
 
-        window.undo = function() { quill.history.undo(); }
-        window.redo = function() { quill.history.redo(); }
+        document.getElementById('documentTitle').addEventListener('input', function() {
+            localStorage.setItem('autotext_title', this.value);
+        });
 
+        // AI-Manuell hantering via markerad text
         window.runAIManual = async function() {
-            const selection = quill.getSelection();
-            if (!selection || selection.length === 0) {
+            const selection = window.getSelection();
+            const selectedText = selection.toString();
+            
+            if (!selectedText || selectedText.trim().length === 0) {
                 alert("Markera den text du vill att AI ska förbättra först!");
                 return;
             }
-            const selectedText = quill.getText(selection.index, selection.length);
-            executeAIAction(selectedText, selection.index, selection.length, false);
+
+            // Sparar markeringen för att kunna ersätta rätt text efter API-anropet
+            const range = selection.getRangeAt(0);
+            executeAIAction(selectedText, range, false);
         }
 
         let autopilotActive = false;
         let autopilotTimer;
         window.toggleAutopilot = function() { autopilotActive = document.getElementById('autopilotToggle').checked; }
         function resetAutopilotTimer() { if (!autopilotActive) return; clearTimeout(autopilotTimer); autopilotTimer = setTimeout(runAIAutopilot, 3000); }
-        async function runAIAutopilot() { const totalText = quill.getText().trim(); if(totalText.length < 5) return; executeAIAction(totalText, 0, totalText.length, true); }
+        
+        async function runAIAutopilot() { 
+            const totalText = editor.innerText.trim(); 
+            if(totalText.length < 5) return; 
+            // Vid autopilot skickar vi hela fältet
+            executeAIAction(totalText, null, true); 
+        }
 
-        async function executeAIAction(text, index, length, isAutopilot = false) {
+        // HÄR KÖR VI DET DIREKTA OCH RENA ANROPET
+        async function executeAIAction(text, range, isAutopilot = false) {
             let updatedText = "";
             if (isAutopilot && text.trim().split(/\s+/).length < 3) return;
 
@@ -211,7 +231,7 @@
                 console.log("Kör lokal reservmotor.");
             }
 
-            // Fallback ordlista
+            // Oslagbar lokal fallback-motor om nätverket eller uBlock blockerar anropet
             if (!updatedText) {
                 let temp = text;
                 const ordlista = [
@@ -225,21 +245,26 @@
                 updatedText = temp;
             }
 
+            // SÖMLÖS INSÄTTNING UTAN ATT LAYOUTEN HOPPAR
             if (updatedText && updatedText.trim() !== text.trim()) {
-                quill.updateContents({
-                    ops: [{ retain: index }, { delete: length }, { insert: updatedText }]
-                });
-                quill.setSelection(index, updatedText.length);
+                if (!isAutopilot && range) {
+                    range.deleteContents();
+                    range.insertNode(document.createTextNode(updatedText));
+                } else {
+                    editor.innerText = updatedText;
+                }
+                localStorage.setItem('autotext_pure_html', editor.innerHTML);
             }
         }
 
         window.exportToWord = function() {
-            const htmlContent = quill.getSemanticHTML();
+            const htmlContent = editor.innerHTML;
+            const filename = document.getElementById('documentTitle').value.trim() || 'Autotext_Dokument';
             const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>";
             const footer = "</body></html>";
             const blob = new Blob(['\ufeff' + header + htmlContent + footer], { type: 'application/msword' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = 'Autotext_Dokument.doc'; a.click();
+            const a = document.createElement('a'); a.href = url; a.download = `${filename}.doc`; a.click();
         }
     </script>
 </body>

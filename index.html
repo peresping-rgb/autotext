@@ -8,14 +8,6 @@
     <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 
-    <script type="importmap">
-      {
-        "imports": {
-          "@google/generative-ai": "https://esm.run/@google/generative-ai"
-        }
-      }
-    </script>
-
     <style>
         :root {
             --bg-color: #f4f5f7;
@@ -168,17 +160,9 @@
         </div>
     </div>
 
-    <script type="module">
-        import { GoogleGenAI } from "@google/generative-ai";
-
-        // DIN AKTIVA GEMINI API-NYCKEL INLAGD OCH KLAR
+    <script>
+        // DIN GENERERADE GEMINI API-NYCKEL (FÖR WEBBLÄSARE/FRONTEND)
         const GEMINI_API_KEY = "AQ.Ab8RN6lmycBycRPqnOgm7tlRXBvcVQnYhELEhSDWSY1NDO8cw";
-        
-        const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-        const model = ai.getGenerativeModel({ 
-            model: "gemini-1.5-flash",
-            generationConfig: { responseMimeType: "text/plain" }
-        });
 
         var Font = Quill.import('formats/font');
         Font.whitelist = ['sans-serif', 'georgia', 'courier'];
@@ -237,26 +221,35 @@
             executeAIAction(totalText, 0, totalText.length, true);
         }
 
-        // SUPERSÄKERT, DIREKT UTBRETTS-ANROP TILL GEMINI VIA DIN NYCKEL
+        // DIREKTSTANDARD STANDARDANROP (INGA MODULER KRÄVS)
         async function executeAIAction(text, index, length, isAutopilot = false) {
             let updatedText = "";
             if (isAutopilot && text.trim().split(/\s+/).length < 3) return;
 
             try {
-                const prompt = `Du är en professionell svensk textredigerare. Korrigera enbart stavfel, grammatik, missad ordflöd eller uppenbara syftningsfel i följande text. Returnera ENBART den korrigerade texten. Lägg INTE till några förklaringar, kommentarer, hälsningar eller extra tecken:\n\n"${text}"`;
+                const promptText = `Du är en professionell svensk textredigerare. Korrigera enbart stavfel, grammatik, missat ordflöde eller uppenbara syftningsfel i följande text. Returnera ENBART den korrigerade texten. Lägg INTE till några förklaringar, kommentarer, hälsningar eller extra tecken:\n\n"${text}"`;
                 
-                const result = await model.generateContent(prompt);
-                const response = await result.response;
-                let aiOutput = response.text();
+                // Vi bygger ett helt rent HTTP POST-anrop direkt till Gemini API:et
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
                 
-                if (aiOutput) {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: promptText }] }]
+                    })
+                });
+
+                const data = await response.json();
+                if (data && data.candidates && data.candidates[0].content.parts[0].text) {
+                    let aiOutput = data.candidates[0].content.parts[0].text;
                     updatedText = aiOutput.trim().replace(/^"+|"+$/g, '');
                 }
             } catch (e) {
-                console.error("Gemini API misslyckades:", e);
+                console.error("Gemini API Direct Fetch misslyckades:", e);
             }
 
-            // SNABB INSTANT RESERVMOTOR (Om nätverket tvekar)
+            // INSTANT RESERVMOTOR (Om nätverket skulle tveka eller neka nyckeln)
             if (!updatedText) {
                 let temporärText = text;
                 const ordlista = [
@@ -273,7 +266,7 @@
                 updatedText = temporärText;
             }
 
-            // SÖMLÖS UPPDATERING I TEXTEDITORN
+            // UPPDATERA SÖMLÖST I EDITORN
             if (updatedText && updatedText.trim() !== text.trim()) {
                 quill.updateContents({
                     ops: [

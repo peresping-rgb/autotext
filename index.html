@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Autotext - Skrivrummet</title>
     
-    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 
     <style>
         :root {
@@ -60,29 +60,22 @@
 
         .main-workspace { width: 100%; max-width: 850px; margin-top: 20px; display: flex; flex-direction: column; flex-grow: 1; margin-bottom: 40px; }
         
-        /* Renodlad och stabil verktygsrad i standardutförande */
+        /* Stabiliserar verktygsfältet */
         .ql-toolbar.ql-snow { 
             border: 1px solid var(--border-color) !important; 
             border-radius: 8px 8px 0 0; 
             background: white; 
-            padding: 10px !important; 
-            display: flex; 
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 6px;
+            padding: 10px !important;
         }
 
         .ql-container.ql-snow { border: 1px solid var(--border-color) !important; border-radius: 0 0 8px 8px; background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.04); flex-grow: 1; overflow-y: auto; }
         .ql-editor { min-height: 500px; padding: 40px 50px !important; line-height: 1.6; font-size: 16px; }
 
-        .btn-ai-manual { background: linear-gradient(45deg, var(--primary-blue), var(--ai-purple)); color: white; box-shadow: 0 2px 6px rgba(26, 115, 232, 0.2); margin-left: 4px; height: 28px; padding: 0 12px; display: flex; align-items: center; justify-content: center; }
-        .btn-ai-manual:hover { background: linear-gradient(45deg, #1557b0, #7928ca); transform: translateY(-1px); }
+        .btn-ai-manual { background: linear-gradient(45deg, var(--primary-blue), var(--ai-purple)); color: white; box-shadow: 0 2px 6px rgba(26, 115, 232, 0.2); font-weight: bold; border-radius: 4px; padding: 4px 12px; margin-right: 10px; cursor: pointer; }
+        .btn-ai-manual:hover { background: linear-gradient(45deg, #1557b0, #7928ca); }
 
-        .custom-undo-redo { background: none; border: none; padding: 3px 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .custom-undo-redo svg { fill: #444; width: 18px; height: 18px; }
-        .custom-undo-redo:hover svg { fill: var(--primary-blue); }
-        
-        .status-badge { font-size: 11px; color: #107c41; margin-left: auto; font-weight: bold; padding-right: 5px; }
+        .key-config-link { font-size: 12px; color: #888; text-decoration: none; cursor: pointer; float: right; margin-top: 6px; }
+        .key-config-link:hover { color: var(--primary-blue); }
     </style>
 </head>
 <body>
@@ -94,7 +87,7 @@
         </div>
         <div class="button-group">
             <div class="autopilot-container">
-                ⚡ Auto-Korrigerare
+                🤖 AI-Autopilot
                 <label class="switch">
                     <input type="checkbox" id="autopilotToggle" onchange="toggleAutopilot()">
                     <span class="slider"></span>
@@ -106,101 +99,118 @@
 
     <div class="main-workspace">
         <div id="toolbar">
-            <button class="custom-undo-redo" onclick="undo()" title="Ångra"><svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg></button>
-            <button class="custom-undo-redo" onclick="redo()" title="Gör om"><svg viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.91 16c1.05-3.19 4.06-5.5 7.59-5.5 1.96 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg></button>
-            
-            <span class="ql-formats"></span>
-            <button class="btn-ai-manual" onclick="runAIManual()">✨ Fixa Text</button>
-            <span class="ql-formats"></span>
-            
-            <select class="ql-header"><option selected>Vanlig text</option><option value="1">Stor rubrik</option><option value="2">Mellanrubrik</option></select>
-            <span class="ql-formats"></span>
-            <button class="ql-bold"></button>
-            <button class="ql-italic"></button>
-            <button class="ql-underline"></button>
-            <span class="ql-formats"></span>
-            <button class="ql-list" value="bullet"></button>
-            <button class="ql-list" value="ordered"></button>
-
-            <span class="status-badge">🟢 Säker lokal motor</span>
+            <span class="ql-formats">
+                <button class="btn-ai-manual" onclick="runAIManual()" title="Fixa markering med AI">✨ AI-Fixa</button>
+            </span>
+            <span class="ql-formats">
+                <select class="ql-header">
+                    <option selected>Vanlig text</option>
+                    <option value="1">Stor rubrik</option>
+                    <option value="2">Mellanrubrik</option>
+                </select>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-bold"></button>
+                <button class="ql-italic"></button>
+                <button class="ql-underline"></button>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-list" value="bullet"></button>
+                <button class="ql-list" value="ordered"></button>
+            </span>
+            <a class="key-config-link" onclick="promptForKey(true)">🔑 Ändra API-nyckel</a>
         </div>
+        
         <div id="editor">
-            <p>Välkommen till <strong>Autotext</strong>. Skriv en mening med ett stavfel (t.ex. <em>"Jag cykladlle i går snappt,"</em>), markera den och klicka på ✨ Fixa Text!</p>
+            <p>Välkommen till <strong>Autotext</strong>. Skriv en mening med ett stavfel (t.ex. <em>"Jag cykladlle i går snappt,"</em>), markera texten och klicka på ✨ AI-Fixa!</p>
         </div>
     </div>
 
     <script>
-        // Initiera den stabila Quill-editorn
+        // SÄKER HANTERING: Fråga efter nyckel och spara den enbart lokalt i webbläsaren
+        function promptForKey(force = false) {
+            let key = localStorage.getItem("autotext_gemini_pure_key");
+            if (!key || force) {
+                const userKey = prompt("Ange din Gemini API-nyckel (Hämtas från Google AI Studio):\nNyckeln sparas bara lokalt i din egen webbläsare och skickas aldrig till GitHub.", key || "");
+                if (userKey && userKey.trim().length > 0) {
+                    localStorage.setItem("autotext_gemini_pure_key", userKey.trim());
+                    key = userKey.trim();
+                }
+            }
+            return key;
+        }
+
+        // Initiera Quill med det inbyggda standardtemat 'snow'
         var quill = new Quill('#editor', { 
             modules: { toolbar: '#toolbar' }, 
             theme: 'snow' 
         });
 
-        // Hämta textbackup om sidan laddas om
+        // Läs in textbackup om sidan laddas om
         if(localStorage.getItem('autotext_backup')) {
             try { quill.setContents(JSON.parse(localStorage.getItem('autotext_backup'))); } catch(e){}
         }
 
-        // Spara text lokalt vid ändring
         quill.on('text-change', function() {
             localStorage.setItem('autotext_backup', JSON.stringify(quill.getContents()));
             resetAutopilotTimer();
         });
 
-        window.undo = function() { quill.history.undo(); }
-        window.redo = function() { quill.history.redo(); }
-
-        // Aktivera textkorrigering på markerat område
-        window.runAIManual = function() {
+        // Kör AI manuellt på markerat område
+        window.runAIManual = async function() {
             const selection = quill.getSelection();
             if (!selection || selection.length === 0) {
-                alert("Markera den text du vill korrigera först!");
+                alert("Markera texten du vill att AI:n ska korrigera först!");
                 return;
             }
             const selectedText = quill.getText(selection.index, selection.length);
-            processTextLocally(selectedText, selection.index, selection.length);
+            executeAI(selectedText, selection.index, selection.length);
         }
 
-        // Autopilot-hantering
         let autopilotActive = false;
         let autopilotTimer;
         window.toggleAutopilot = function() { autopilotActive = document.getElementById('autopilotToggle').checked; }
-        function resetAutopilotTimer() { if (!autopilotActive) return; clearTimeout(autopilotTimer); autopilotTimer = setTimeout(runAIAutopilot, 2500); }
-        function runAIAutopilot() { const totalText = quill.getText().trim(); if(totalText.length < 5) return; processTextLocally(totalText, 0, totalText.length); }
+        function resetAutopilotTimer() { if (!autopilotActive) return; clearTimeout(autopilotTimer); autopilotTimer = setTimeout(runAIAutopilot, 3000); }
+        function runAIAutopilot() { const totalText = quill.getText().trim(); if(totalText.length < 5) return; executeAI(totalText, 0, totalText.length); }
 
-        // Blixtsnabb, lokal lingvistisk motor – Ingen CORS-blockering, inga läckta nycklar
-        function processTextLocally(text, index, length) {
-            let processed = text;
+        // AI-Motor
+        async function executeAI(text, index, length) {
+            const apiKey = promptForKey(false);
+            if (!apiKey) {
+                alert("Du måste ange en API-nyckel för att köra AI-funktionerna.");
+                return;
+            }
 
-            // Avancerad lokal ord- och strukturdatabas för omedelbar korrigering
-            const regler = [
-                { fel: /\bcykladlle\b/gi, rätt: "cyklade" },
-                { fel: /\bcykladge\b/gi, rätt: "cyklade" },
-                { fel: /\bckla\b/gi, rätt: "cykla" },
-                { fel: /\bsnappt\b/gi, rätt: "snabbt" },
-                { fel: /\bigår\b/gi, rätt: "i går" },
-                { fel: /\bidag\b/gi, rätt: "i dag" },
-                { fel: /\bju\s+mer\b/gi, rätt: "ju mer" },
-                { fel: /,(\S)/g, rätt: ", $1" }, // Säkerställer mellanslag efter kommatecken
-                { fel: /\s+/g, rätt: " " }        // Städar upp dubbla mellanslag
-            ];
+            try {
+                const promptInstruction = "Du är en svensk textredigerare. Korrigera stavfel och grammatik i följande text. Ändra ingenting annat och behåll stilen. Svara enbart med den korrigerade texten utan citattecken eller kommentarer:\n\n" + text;
+                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
-            regler.forEach(regel => {
-                processed = processed.replace(regel.fel, regel.rätt);
-            });
-
-            // Om texten har förändrats, uppdatera editorn sömlöst
-            if (processed !== text) {
-                quill.updateContents({
-                    ops: [{ retain: index }, { delete: length }, { insert: processed }]
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: promptInstruction }] }] })
                 });
-                quill.setSelection(index, processed.length);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    let updatedText = data.candidates[0].content.parts[0].text.trim();
+                    updatedText = updatedText.replace(/^"+|"+$/g, '').trim(); // Ta bort eventuella citattecken i svaret
+
+                    if (updatedText && updatedText !== text.trim()) {
+                        quill.updateContents({
+                            ops: [{ retain: index }, { delete: length }, { insert: updatedText }]
+                        });
+                    }
+                } else {
+                    alert("Kunde inte hämta svar från AI:n. Kontrollera att din API-nyckel är giltig och inte spärrad.");
+                }
+            } catch (e) {
+                console.error("Nätverksfel:", e);
             }
         }
 
-        // Microsoft Word-export
         window.exportToWord = function() {
-            const htmlContent = quill.getSemanticHTML();
+            const htmlContent = quill.root.innerHTML;
             const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>";
             const footer = "</body></html>";
             const blob = new Blob(['\ufeff' + header + htmlContent + footer], { type: 'application/msword' });

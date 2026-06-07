@@ -17,7 +17,6 @@
             --primary-blue: #1a73e8;
             --ai-purple: #9333ea;
             --success-green: #107c41;
-            --warning-amber: #d97706;
         }
 
         body {
@@ -49,7 +48,6 @@
         .button-group { display: flex; gap: 12px; align-items: center; }
         button { border: none; padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
         
-        /* KNAPPEN FÖR API-NYCKEL - NU SUPERTYDLIG HÄR UPPE */
         .btn-key-config { background-color: #f1f3f4; color: #3c4043; border: 1px solid var(--border-color); }
         .btn-key-config:hover { background-color: #e8eaed; color: var(--text-color); }
 
@@ -130,10 +128,11 @@
     </div>
 
     <script>
+        // SÄKER LOCALSTORAGE-HANTERING
         function promptForKey(force = false) {
             let key = localStorage.getItem("autotext_gemini_pure_key");
             if (!key || force) {
-                const userKey = prompt("Klistra in din Gemini API-nyckel från Google AI Studio här:\n(Den sparas bara lokalt i din webbläsare)", key || "");
+                const userKey = prompt("Klistra in din Gemini API-nyckel från Google AI Studio här:\n(Den sparas säkert lokalt i din egen webbläsare)", key || "");
                 if (userKey && userKey.trim().length > 0) {
                     localStorage.setItem("autotext_gemini_pure_key", userKey.trim());
                     key = userKey.trim();
@@ -147,20 +146,24 @@
             promptForKey(false);
         });
 
+        // Initiera Quill Text Editor
         var quill = new Quill('#editor', { 
             modules: { toolbar: '#toolbar' }, 
             theme: 'snow' 
         });
 
+        // Hämta textbackup om sidan laddas om
         if(localStorage.getItem('autotext_backup')) {
             try { quill.setContents(JSON.parse(localStorage.getItem('autotext_backup'))); } catch(e){}
         }
 
+        // Spara text automatiskt vid varje ändring
         quill.on('text-change', function() {
             localStorage.setItem('autotext_backup', JSON.stringify(quill.getContents()));
             resetAutopilotTimer();
         });
 
+        // Kör AI manuellt på markerat område
         window.runAIManual = async function() {
             const selection = quill.getSelection();
             if (!selection || selection.length === 0) {
@@ -171,12 +174,14 @@
             executeAI(selectedText, selection.index, selection.length);
         }
 
+        // Autopilot-logik
         let autopilotActive = false;
         let autopilotTimer;
         window.toggleAutopilot = function() { autopilotActive = document.getElementById('autopilotToggle').checked; }
         function resetAutopilotTimer() { if (!autopilotActive) return; clearTimeout(autopilotTimer); autopilotTimer = setTimeout(runAIAutopilot, 3000); }
         function runAIAutopilot() { const totalText = quill.getText().trim(); if(totalText.length < 5) return; executeAI(totalText, 0, totalText.length); }
 
+        // KORRIGERAD AI-MOTOR UTAN URL-PROBLEM (404-FIX)
         async function executeAI(text, index, length) {
             const apiKey = promptForKey(false);
             if (!apiKey) {
@@ -186,7 +191,10 @@
 
             try {
                 const promptInstruction = "Du är en svensk textredigerare. Korrigera stavfel och grammatik i följande text. Ändra ingenting annat och behåll stilen. Svara enbart med den korrigerade texten utan citattecken eller kommentarer:\n\n" + text;
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+                
+                // Vi bygger URL stabilt och injicerar nyckeln separat med encodeURIComponent
+                const baseUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+                const url = `${baseUrl}?key=${encodeURIComponent(apiKey)}`;
 
                 const response = await fetch(url, {
                     method: "POST",
@@ -196,22 +204,29 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    let updatedText = data.candidates[0].content.parts[0].text.trim();
-                    updatedText = updatedText.replace(/^"+|"+$/g, '').trim();
+                    
+                    if (data.candidates && data.candidates[0].content.parts[0].text) {
+                        let updatedText = data.candidates[0].content.parts[0].text.trim();
+                        updatedText = updatedText.replace(/^"+|"+$/g, '').trim();
 
-                    if (updatedText && updatedText !== text.trim()) {
-                        quill.updateContents({
-                            ops: [{ retain: index }, { delete: length }, { insert: updatedText }]
-                        });
+                        if (updatedText && updatedText !== text.trim()) {
+                            quill.updateContents({
+                                ops: [{ retain: index }, { delete: length }, { insert: updatedText }]
+                            });
+                        }
                     }
                 } else {
-                    alert("Kunde inte hämta svar. Kontrollera att din nyckel är aktiv i Google AI Studio.");
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error("Google API returnerade ett fel:", errorData);
+                    alert("Kunde inte hämta svar från Google. Tryck på F12 och titta i konsolen för det exakta felmeddelandet.");
                 }
             } catch (e) {
                 console.error("Nätverksfel:", e);
+                alert("Ett nätverksfel uppstod vid kommunikation med AI:n.");
             }
         }
 
+        // Export till Word-dokument (.doc)
         window.exportToWord = function() {
             const htmlContent = quill.root.innerHTML;
             const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>";

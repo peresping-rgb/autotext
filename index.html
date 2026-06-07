@@ -253,7 +253,6 @@
                 
                 if (data && data[0] && data[0].generated_text) {
                     let aiOutput = data[0].generated_text;
-                    // Tvätta bort eventuellt spill från instruktionstaggarna om de läcker ut
                     updatedText = aiOutput.split("<|eot_id|>")[0].trim();
                     updatedText = updatedText.replace(/^"+|"+$/g, '').trim();
                 }

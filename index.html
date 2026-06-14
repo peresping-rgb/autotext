@@ -1,0 +1,2578 @@
+<!DOCTYPE html>
+<!--
+  Autotext — Gratis textredigerare med AI-stöd för svenska
+  © 2026 Per Esping
+  Licens: Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International
+  https://creativecommons.org/licenses/by-nc-nd/4.0/
+
+  Du får fritt använda och dela denna app, men:
+  - Du måste namnge Per Esping som upphovsman
+  - Appen får inte användas i kommersiellt syfte
+  - Appen får inte modifieras och distribueras som din egen
+-->
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2a7c6f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Autotext">
+<meta name="description" content="Gratis textredigerare med AI-stöd för svenska — perfekt för elever">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<title>Autotext</title>
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1a1a1a;
+  --cream: #f2f0ea;
+  --warm-gray: #e8e5df;
+  --mid-gray: #a09a90;
+  --accent: #c8502a;
+  --ai-teal: #2a7c6f;
+  --ai-teal-soft: #e4f0ee;
+  --panel: #ffffff;
+  --editor-bg: #ffffff;
+}
+
+body.dark {
+  --ink: #e8e4dc;
+  --cream: #1a1a1a;
+  --warm-gray: #2e2e2e;
+  --mid-gray: #666;
+  --accent: #e06b45;
+  --ai-teal: #3a9e8f;
+  --ai-teal-soft: #1a2e2b;
+  --panel: #222222;
+  --editor-bg: #1e1e1e;
+}
+
+body.dark .ql-editor { background: var(--editor-bg) !important; color: var(--ink) !important; }
+body.dark .ql-picker-options,
+body.dark .ql-picker-item { background: #2a2a2a !important; color: white !important; }
+body.dark .ql-picker-item:hover { background: #333 !important; }
+body.dark .ql-picker-label { color: white !important; }
+body.dark .ql-toolbar.ql-snow select { background: #2a2a2a !important; color: white !important; border-color: #444 !important; }
+body.dark .custom-style-select { background: #2a2a2a; color: white; border-color: #444; }
+body.dark .ai-menu { background: #2a2a2a; border-color: var(--warm-gray); }
+body.dark .ai-menu-item { color: var(--ink); border-color: var(--warm-gray); }
+body.dark .ai-menu-item:hover { background: #333; }
+body.dark .history-panel { background: #222; border-color: var(--warm-gray); }
+
+/* Verktygsfält i mörkt läge */
+body.dark .toolbar-wrap { background: var(--panel); }
+body.dark .ql-toolbar.ql-snow button svg .ql-stroke { stroke: #d0ccc4; }
+body.dark .ql-toolbar.ql-snow button svg .ql-fill { fill: #d0ccc4; }
+body.dark .ql-toolbar.ql-snow button:hover svg .ql-stroke { stroke: white; }
+body.dark .ql-toolbar.ql-snow button:hover svg .ql-fill { fill: white; }
+body.dark .btn-tool svg { fill: #d0ccc4; }
+body.dark .btn-tool:hover svg { fill: white; }
+body.dark .btn-clean svg { fill: #d0ccc4; }
+body.dark .btn-clean:hover svg { fill: var(--accent); }
+body.dark .btn-help,
+body.dark .btn-share,
+body.dark .btn-key,
+body.dark .btn-theme { border-color: #444; color: #d0ccc4; }
+body.dark .save-indicator { color: #888; }
+body.dark .save-indicator.saved { color: var(--ai-teal); }
+body.dark .titlebar { background: #1a1a1a; }
+body.dark .doc-title-input { color: var(--ink); }
+body.dark .doc-title-label { color: #888; }
+body.dark .divider { background: #444; }
+body.dark .statusbar { background: var(--panel); color: white; }
+body.dark .statusbar-tool { border-color: #444; color: #ccc; }
+body.dark .statusbar-tool:hover { color: var(--ai-teal); border-color: var(--ai-teal); }
+body.dark .statusbar-copy { color: #aaa; }
+body.dark .statusbar-link { color: #aaa; border-color: #666; }
+body.dark .statusbar-uilang { border-color: #444; color: white; }
+
+.btn-theme {
+  background: none; border: 1.5px solid var(--warm-gray);
+  width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
+  font-size: 14px; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; flex-shrink: 0;
+}
+.btn-theme:hover { border-color: var(--accent); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; overflow: hidden; }
+
+body {
+  font-family: 'Syne', sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--panel);
+  border-bottom: 1.5px solid var(--warm-gray);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100px;
+  flex-shrink: 0;
+  z-index: 10;
+  gap: 16px;
+}
+.logo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 58px;
+  letter-spacing: -1px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.logo em { font-style: italic; color: var(--accent); }
+.logo-dot {
+  width: 12px; height: 12px;
+  background: var(--ai-teal);
+  border-radius: 50%;
+  margin-left: 6px;
+  animation: pulse 2.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.6); }
+}
+.topbar-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; flex-wrap: nowrap; }
+
+.btn-key {
+  background: none; border: 2px solid var(--warm-gray);
+  width: 56px; height: 56px; border-radius: 10px; cursor: pointer;
+  font-size: 26px; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; flex-shrink: 0;
+}
+.btn-key:hover { border-color: var(--accent); }
+.btn-key.has-key { border-color: var(--ai-teal); background: var(--ai-teal-soft); }
+.btn-donate {
+  background: #fff6e0; border: 2px solid #d4a030;
+  height: 56px; padding: 0 18px; border-radius: 10px; cursor: pointer;
+  font-size: 18px; font-family: 'Inter', sans-serif; color: #8a5a00;
+  display: flex; align-items: center; gap: 6px;
+  transition: all 0.2s; flex-shrink: 0; white-space: nowrap; text-decoration: none;
+}
+.btn-donate .coffee-icon { font-size: 24px; line-height: 1; }
+.btn-donate:hover { border-color: #b07010; color: #6a3e00; background: #ffe8a0; }
+body.dark .btn-donate { background: #2a1e00; border-color: #c07010; color: #f0b030; }
+body.dark .btn-donate:hover { background: #3a2a00; color: #ffd060; border-color: #d4a030; }
+.save-indicator {
+  font-size: 18px;
+  color: var(--mid-gray);
+  font-family: 'DM Mono', monospace;
+  transition: color 0.3s;
+}
+.save-indicator.saved { color: var(--ai-teal); }
+
+.btn-export { background: var(--accent); color: white; border: none;
+  padding: 14px 28px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px;
+  border-radius: 10px; cursor: pointer; transition: all 0.2s;
+}
+.btn-export:hover { filter: brightness(0.85); transform: translateY(-1px); }
+.btn-pdf { background: #1a5c9e; }
+.btn-pdf:hover { filter: brightness(0.85); transform: translateY(-1px); }
+.btn-copy { background: none; border: 2px solid var(--warm-gray); color: var(--ink);
+  padding: 14px 20px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px;
+  border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+}
+.btn-copy:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+.btn-copy.copied { border-color: var(--ai-teal); color: var(--ai-teal); }
+body.dark .btn-copy { border-color: #444; color: #d0ccc4; }
+body.dark .btn-copy:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── UTSKRIFT / PDF ── */
+@media print {
+  .topbar, .titlebar, .toolbar-wrap,
+  .ai-panel, .ai-toast, .history-panel,
+  .help-panel, .modal-overlay, .statusbar { display: none !important; }
+
+  body { background: white; height: auto; overflow: visible; }
+  .workspace { display: block; padding: 0; overflow: visible; }
+  .ql-toolbar { display: none !important; }
+  .ql-container.ql-snow { border: none !important; max-width: 100%; }
+  .ql-editor {
+    padding: 0 !important;
+    box-shadow: none !important;
+    font-size: 12pt !important;
+    line-height: 1.6 !important;
+    min-height: auto !important;
+    background: white !important;
+  }
+  .ql-editor h1 { font-size: 22pt !important; margin-bottom: 12pt; }
+  .ql-editor h2 { font-size: 14pt !important; }
+  .ql-editor p  { margin-bottom: 8pt; orphans: 3; widows: 3; }
+  @page { margin: 2cm; size: A4; }
+}
+
+/* ── TITLEBAR ── */
+.titlebar {
+  background: var(--cream);
+  border-bottom: 1.5px solid var(--warm-gray);
+  padding: 0 24px;
+  display: flex; align-items: center;
+  height: 68px; flex-shrink: 0;
+  gap: 12px;
+}
+.doc-title-label {
+  font-size: 14px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase; color: var(--mid-gray);
+  white-space: nowrap; font-family: 'Syne', sans-serif;
+}
+.doc-title-input {
+  background: transparent; border: none; outline: none;
+  font-family: 'DM Serif Display', serif; font-size: 22px;
+  color: var(--ink); flex: 1; padding: 0 8px;
+  border-bottom: 2px solid transparent; transition: border-color 0.2s;
+}
+.doc-title-input:focus { border-bottom-color: var(--accent); }
+.doc-title-input::placeholder { color: var(--mid-gray); font-style: italic; }
+
+/* ── AI LOADING BAR ── */
+.ai-loading-bar {
+  background: var(--ai-teal-soft);
+  border-bottom: 1.5px solid var(--ai-teal);
+  padding: 7px 20px;
+  flex-shrink: 0;
+  display: none;
+}
+.ai-loading-inner {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 600; color: var(--ai-teal);
+  font-family: 'Syne', sans-serif;
+}
+.ai-loading-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--ai-teal);
+  animation: blink 0.8s ease-in-out infinite; flex-shrink: 0;
+}
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+#aiLoadingPct { font-family: 'DM Mono', monospace; font-size: 11px; margin-left: auto; }
+
+/* ── TOOLBAR ── */
+.toolbar-wrap {
+  background: var(--panel);
+  border-bottom: 1.5px solid var(--warm-gray);
+  height: 64px; flex-shrink: 0;
+  overflow: visible;
+  position: relative;
+}
+.toolbar-inner {
+  display: flex; align-items: center; gap: 5px;
+  padding: 0 16px; height: 100%;
+  overflow-x: auto; overflow-y: visible;
+  scrollbar-width: none;
+}
+.toolbar-inner::-webkit-scrollbar { display: none; }
+/* ── AI MENU ── */
+.ai-menu-wrap { position: relative; flex-shrink: 0; }
+.btn-ai {
+  background: linear-gradient(135deg, var(--ai-teal), #1a5c52);
+  color: white; border: none;
+  height: 46px; padding: 0 18px; font-size: 17px; font-weight: 700;
+  font-family: 'Syne', sans-serif; letter-spacing: 0.3px;
+  border-radius: 8px; cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+  white-space: nowrap;
+}
+.btn-ai:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(42,124,111,0.3); }
+.btn-ai.no-key { background: var(--warm-gray); color: var(--mid-gray); cursor: default; }
+.btn-ai.no-key:hover { transform: none; box-shadow: none; }
+.ai-menu {
+  display: none; position: fixed;
+  background: white; border: 1.5px solid var(--warm-gray);
+  border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  z-index: 500; min-width: 240px; overflow: hidden;
+}
+.ai-menu.open { display: block; }
+.ai-menu-item {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; cursor: pointer;
+  padding: 16px 20px; font-size: 17px; font-weight: 600;
+  font-family: Georgia, 'Times New Roman', serif; color: var(--ink);
+  transition: background 0.15s; border-bottom: 1px solid var(--warm-gray);
+}
+.ai-menu-item:last-child { border-bottom: none; }
+.ai-menu-item:hover { background: var(--cream); }
+
+/* ── AI PANEL ── */
+.ai-panel {
+  background: var(--ai-teal-soft);
+  border-bottom: 1.5px solid var(--ai-teal);
+  flex-shrink: 0; max-height: 240px;
+  display: flex; flex-direction: column;
+}
+.ai-panel-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 16px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--ai-teal); font-family: 'Syne', sans-serif;
+  border-bottom: 1px solid rgba(42,124,111,0.2);
+}
+.ai-panel-header button {
+  background: var(--ink); border: none; cursor: pointer;
+  color: var(--paper); font-size: 18px; padding: 0;
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; line-height: 1;
+}
+.ai-panel-body {
+  padding: 12px 16px; font-size: 16px; line-height: 1.75;
+  color: var(--ink); overflow-y: auto; flex: 1;
+  font-family: Georgia, 'Times New Roman', serif; white-space: pre-wrap;
+}
+.ai-panel-footer { padding: 8px 16px; border-top: 1px solid rgba(42,124,111,0.2); }
+.ai-panel-btn-apply {
+  background: var(--ai-teal); color: white; border: none;
+  padding: 6px 14px; border-radius: 5px; font-size: 12px;
+  font-weight: 700; font-family: 'Syne', sans-serif; cursor: pointer;
+  transition: background 0.2s;
+}
+.ai-panel-btn-apply:hover { background: #1a5c52; }
+
+.divider { width: 1.5px; height: 36px; background: var(--warm-gray); margin: 0 4px; flex-shrink: 0; }
+
+.btn-tool {
+  background: none; border: none; cursor: pointer;
+  width: 44px; height: 44px; border-radius: 8px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s; flex-shrink: 0;
+}
+.btn-tool svg { width: 24px; height: 24px; fill: var(--mid-gray); transition: fill 0.15s; }
+.btn-tool:hover { background: var(--cream); }
+.btn-tool:hover svg { fill: var(--ink); }
+.btn-tool.active svg { fill: var(--accent); }
+
+/* Quill toolbar overrides */
+#toolbar { border: none !important; padding: 0 !important; display: flex; align-items: center; gap: 3px; background: transparent; }
+.ql-toolbar.ql-snow { border: none !important; padding: 0 !important; display: flex; align-items: center; gap: 3px; flex: 1; }
+.ql-toolbar.ql-snow .ql-formats { display: flex; align-items: center; margin-right: 0; }
+.ql-toolbar.ql-snow button {
+  width: 44px; height: 44px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s; padding: 0;
+}
+.ql-toolbar.ql-snow button svg { width: 22px; height: 22px; }
+.ql-toolbar.ql-snow button:hover,
+.ql-toolbar.ql-snow button.ql-active { background: var(--cream) !important; }
+.ql-toolbar.ql-snow button svg .ql-stroke { stroke: var(--mid-gray); }
+.ql-toolbar.ql-snow button:hover svg .ql-stroke,
+.ql-toolbar.ql-snow button.ql-active svg .ql-stroke { stroke: var(--accent); }
+.ql-toolbar.ql-snow button svg .ql-fill { fill: var(--mid-gray); }
+.ql-toolbar.ql-snow button:hover svg .ql-fill,
+.ql-toolbar.ql-snow button.ql-active svg .ql-fill { fill: var(--accent); }
+.ql-toolbar.ql-snow select {
+  border: 2px solid var(--warm-gray); border-radius: 8px;
+  padding: 6px 12px; font-family: Georgia, 'Times New Roman', serif; font-size: 17px; font-weight: 600;
+  color: var(--ink); background: white; cursor: pointer; height: 48px; outline: none;
+}
+.ql-toolbar.ql-snow select:focus { border-color: var(--ai-teal); }
+
+.btn-clean {
+  background: none; border: none; cursor: pointer;
+  width: 44px; height: 44px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s; padding: 0; flex-shrink: 0;
+}
+.btn-clean svg { width: 24px; height: 24px; fill: var(--mid-gray); transition: fill 0.15s; }
+.btn-clean:hover { background: #fde8e4; }
+.btn-clean:hover svg { fill: var(--accent); }
+
+/* ── CUSTOM TEXTSTORLEK ── */
+.btn-tsize {
+  font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700;
+  color: var(--mid-gray); width: auto; padding: 0 8px;
+}
+.btn-tsize:hover { color: var(--ink); background: var(--cream); }
+.ql-editor { tab-size: 4; }
+.ql-editor p, .ql-editor li {
+  tab-size: 4;
+}
+.workspace {
+  flex: 1; overflow-y: auto; overflow-x: auto;
+  padding: 0 10px 32px;
+  display: flex; justify-content: center;
+}
+.editor-wrap { width: 794px; max-width: 100%; display: flex; flex-direction: column; }
+.zoom-container { display: flex; justify-content: center; transform-origin: top center; width: 794px; }
+.ql-container.ql-snow { border: none !important; background: transparent; width: 100%; }
+.ql-editor {
+  background: white; border-radius: 0 0 2px 2px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+  min-height: 600px; padding: 94px 94px !important;
+  font-family: Georgia, 'Times New Roman', serif; font-size: 12pt; line-height: 1.75;
+  color: var(--ink); outline: none;
+}
+.ql-editor { font-family: Georgia, 'Times New Roman', serif; font-size: 16px; line-height: 1.75; }
+.ql-editor h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 24pt;
+  line-height: 1.3; margin-bottom: 0.5em;
+  text-transform: none;
+}
+.ql-editor h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 18pt;
+  line-height: 1.4; color: var(--ink);
+  margin-bottom: 0.4em; text-transform: none;
+}
+.ql-editor h3 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 14pt;
+  line-height: 1.4; color: var(--ink);
+  margin-bottom: 0.3em; text-transform: none;
+}
+.ql-editor h4 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 12pt; font-style: italic;
+  line-height: 1.4; color: var(--ink);
+  margin-bottom: 0.3em; text-transform: none;
+}
+.ql-editor p { margin-bottom: 0.8em; }
+
+/* ── NUMRERAD LISTA — fix font på Quills egna markör ── */
+.ql-editor li[data-list="ordered"]::before {
+  font-family: Arial, sans-serif !important;
+  font-style: normal !important;
+}
+
+/* ── PRESENTATIONSLÄGE ── */
+.present-overlay {
+  position: fixed; inset: 0; z-index: 9000;
+  background: #0f1923;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 48px;
+}
+.present-overlay.hidden { display: none; }
+.present-close {
+  position: absolute; top: 20px; right: 24px;
+  background: none; border: none; color: rgba(255,255,255,0.4);
+  font-size: 24px; cursor: pointer; transition: color 0.2s;
+}
+.present-close:hover { color: white; }
+.present-counter {
+  position: absolute; top: 24px; left: 50%; transform: translateX(-50%);
+  color: rgba(255,255,255,0.35); font-size: 13px; font-family: 'Inter', sans-serif;
+  letter-spacing: 1px;
+}
+.present-content {
+  max-width: 860px; width: 100%; text-align: center;
+}
+.present-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(40px, 5vw, 72px);
+  color: white; line-height: 1.15;
+  margin-bottom: 32px;
+}
+.present-body {
+  font-family: Georgia, serif;
+  font-size: clamp(22px, 2.5vw, 32px);
+  color: rgba(255,255,255,0.82);
+  line-height: 1.75;
+}
+.present-nav {
+  position: absolute; bottom: 32px;
+  display: flex; gap: 16px;
+}
+.present-btn {
+  background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.2);
+  color: white; width: 52px; height: 52px; border-radius: 50%;
+  font-size: 20px; cursor: pointer; transition: all 0.2s;
+}
+.present-btn:hover { background: rgba(255,255,255,0.2); }
+.present-btn:disabled { opacity: 0.2; cursor: default; }
+
+.present-zoom-btns {
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  padding: 20px 10px;
+  opacity: 0; transition: opacity 0.2s;
+}
+.present-zoom-btns:hover { opacity: 1; }
+.present-zoom-btn {
+  background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
+  color: white;
+  width: 84px; height: 84px; border-radius: 14px;
+  font-size: 28px; font-weight: 700; font-family: 'Syne', sans-serif;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.present-zoom-btn:hover { background: rgba(255,255,255,0.3); border-color: white; }
+#presentZoomLabel {
+  font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
+  color: rgba(255,255,255,0.7); min-width: 52px; text-align: center;
+  user-select: none;
+}
+
+/* ── TOAST ── */
+.ai-toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: white;
+  padding: 10px 20px; border-radius: 100px;
+  font-size: 14px; font-weight: 600; font-family: Georgia, 'Times New Roman', serif;
+  opacity: 0; pointer-events: none; transition: all 0.3s ease;
+  display: flex; align-items: center; gap: 8px;
+  z-index: 1000; white-space: nowrap;
+}
+.ai-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+body.dark .ai-toast { background: white; color: #1a1a1a; }
+body.dark .toast-dot { background: var(--ai-teal); }
+.toast-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ai-teal); animation: blink 1s linear infinite; }
+
+/* ── VERSIONSHISTORIK-PANEL ── */
+.history-panel {
+  position: fixed; top: 0; right: -300px; width: 280px;
+  height: 100vh; background: var(--panel);
+  border-left: 1.5px solid var(--warm-gray);
+  box-shadow: -4px 0 20px rgba(0,0,0,0.06);
+  z-index: 100; transition: right 0.3s ease;
+  display: flex; flex-direction: column;
+}
+.history-panel.open { right: 0; }
+.history-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 16px 12px;
+  border-bottom: 1.5px solid var(--warm-gray);
+  font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase; color: var(--mid-gray); font-family: 'Syne', sans-serif;
+}
+.history-close { background: none; border: none; cursor: pointer; font-size: 14px; color: var(--mid-gray); padding: 0; }
+.history-close:hover { color: var(--accent); }
+.history-list { flex: 1; overflow-y: auto; padding: 8px; }
+.history-empty { padding: 24px 12px; text-align: center; font-size: 12px; color: var(--mid-gray); line-height: 1.7; font-family: 'Syne', sans-serif; }
+.history-day { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--mid-gray); padding: 10px 12px 4px; font-family: 'Syne', sans-serif; }
+.history-item { padding: 10px 12px; border-radius: 6px; border: 1.5px solid transparent; margin-bottom: 4px; transition: all 0.15s; }
+.history-item:hover { background: var(--cream); border-color: var(--warm-gray); }
+.history-item-time { font-size: 12px; font-weight: 700; color: var(--ink); font-family: 'Syne', sans-serif; }
+.history-item-relative { font-size: 10px; color: var(--mid-gray); margin-top: 2px; font-family: 'DM Mono', monospace; }
+.history-item-preview { font-size: 11px; color: var(--mid-gray); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'DM Mono', monospace; }
+.history-item-chars { font-size: 10px; color: var(--mid-gray); margin-top: 2px; font-family: 'DM Mono', monospace; }
+.history-restore-btn {
+  display: none; background: var(--accent); color: white; border: none;
+  font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px;
+  cursor: pointer; margin-top: 6px; font-family: 'Syne', sans-serif;
+}
+.history-item:hover .history-restore-btn { display: inline-block; }
+
+.workspace::-webkit-scrollbar { width: 14px; }
+.workspace::-webkit-scrollbar-track { background: var(--warm-gray); border-radius: 7px; }
+.workspace::-webkit-scrollbar-thumb { background: #888; border-radius: 7px; border: 3px solid var(--warm-gray); }
+.workspace::-webkit-scrollbar-thumb:hover { background: #555; }
+body.dark .workspace::-webkit-scrollbar-thumb { background: #aaa; }
+body.dark .workspace::-webkit-scrollbar-thumb:hover { background: #ddd; }
+
+/* ── STATUSBAR ── */
+.statusbar {
+  background: var(--panel);
+  border-top: 1.5px solid var(--warm-gray);
+  padding: 0 20px;
+  height: 60px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 14px;
+  font-size: 18px; font-family: Georgia, 'Times New Roman', serif;
+  color: var(--mid-gray);
+}
+.statusbar-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--warm-gray); flex-shrink: 0;
+}
+.statusbar-uilang {
+  background: none; border: 2px solid var(--warm-gray); border-radius: 8px;
+  padding: 8px 16px; font-size: 17px; font-weight: 700; font-family: 'Syne', sans-serif;
+  color: var(--mid-gray); cursor: pointer; transition: all 0.15s; position: relative;
+}
+.statusbar-uilang:hover { border-color: var(--ai-teal); color: var(--ai-teal); }
+.uilang-menu {
+  position: absolute; bottom: 64px; left: 0;
+  background: var(--panel); border: 2px solid var(--warm-gray);
+  border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 200; overflow-y: auto; min-width: 200px;
+  max-height: 380px;
+}
+.uilang-menu.hidden { display: none; }
+.uilang-menu button {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; cursor: pointer;
+  padding: 12px 18px; font-size: 16px; font-weight: 600;
+  font-family: 'Syne', sans-serif; color: var(--ink);
+  transition: background 0.15s; border-bottom: 1px solid var(--warm-gray);
+}
+.uilang-menu button:last-child { border-bottom: none; }
+.uilang-menu button:hover { background: var(--cream); }
+body.dark .uilang-menu { background: #2a2a2a; border-color: #444; }
+body.dark .uilang-menu button { color: white; border-color: #444; }
+body.dark .uilang-menu button:hover { background: #333; }
+.statusbar-copy { font-size: 17px; color: var(--mid-gray); font-family: 'Syne', sans-serif; }
+.statusbar-link { color: var(--mid-gray); text-decoration: none; border-bottom: 1px dotted var(--mid-gray); }
+.statusbar-link:hover { color: var(--ai-teal); border-color: var(--ai-teal); }
+.help-link-btn { background: var(--ai-teal) !important; }
+.help-link-btn:hover { background: #1a5c52 !important; }
+.statusbar-tool {
+  font-size: 17px; font-family: 'Syne', sans-serif; font-weight: 700;
+  color: var(--mid-gray); text-decoration: none; padding: 8px 16px;
+  border: 2px solid var(--warm-gray); border-radius: 8px;
+  transition: all 0.15s; background: none; cursor: pointer;
+}
+.statusbar-tool:hover { color: var(--ai-teal); border-color: var(--ai-teal); }
+@media print { .statusbar { display: none; } }
+
+.logo { direction: ltr !important; unicode-bidi: embed; }
+
+/* Editorn följer dokumentriktning */
+[dir="rtl"] .ql-editor { text-align: right; direction: rtl; }
+[dir="rtl"] .ql-editor p, [dir="rtl"] .ql-editor h1, [dir="rtl"] .ql-editor h2 { text-align: right; }
+
+/* Verktygsfältet ska alltid vara LTR */
+.toolbar-wrap, .toolbar-inner, #toolbar { direction: ltr !important; }
+[dir="rtl"] .toolbar-wrap, [dir="rtl"] #toolbar { direction: ltr !important; }
+.ql-font-sans { font-family: Arial, Helvetica, sans-serif !important; }
+.ql-font-georgia { font-family: Georgia, 'Times New Roman', serif !important; }
+.ql-font-courier { font-family: 'Courier New', Courier, monospace !important; }
+.ql-size-8pt { font-size: 8pt !important; }
+.ql-size-9pt { font-size: 9pt !important; }
+.ql-size-10pt { font-size: 10pt !important; }
+.ql-size-11pt { font-size: 11pt !important; }
+.ql-size-12pt { font-size: 12pt !important; }
+.ql-size-14pt { font-size: 14pt !important; }
+.ql-size-16pt { font-size: 16pt !important; }
+.ql-size-18pt { font-size: 18pt !important; }
+.ql-size-20pt { font-size: 20pt !important; }
+.ql-size-24pt { font-size: 24pt !important; }
+.ql-size-28pt { font-size: 28pt !important; }
+.ql-size-32pt { font-size: 32pt !important; }
+.ql-size-36pt { font-size: 36pt !important; }
+.ql-size-48pt { font-size: 48pt !important; }
+.ql-size-60pt { font-size: 60pt !important; }
+.ql-size-72pt { font-size: 72pt !important; }
+
+/* ── STIL-DROPDOWN ── */
+.custom-style-select {
+  border: 2px solid var(--warm-gray); border-radius: 8px;
+  padding: 6px 10px; font-family: Georgia, 'Times New Roman', serif; font-size: 17px; font-weight: 600;
+  color: var(--ink); background: white; cursor: pointer; height: 48px; outline: none;
+}
+.custom-style-select:focus { border-color: var(--ai-teal); }
+body.dark .custom-style-select { background: #2a2a2a; color: var(--ink); border-color: var(--warm-gray); }
+
+.btn-ptsize {
+  background: none; border: 2px solid var(--warm-gray);
+  border-radius: 8px; cursor: pointer;
+  width: 52px; height: 52px;
+  font-size: 22px; font-weight: 700; line-height: 1;
+  font-family: 'Syne', sans-serif; color: var(--mid-gray);
+  transition: all 0.15s; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-ptsize:hover { border-color: var(--accent); color: var(--accent); background: #fde8e4; }
+body.dark .btn-ptsize { border-color: #444; color: #ccc; }
+body.dark .btn-ptsize:hover { border-color: var(--accent); color: var(--accent); background: transparent; }
+  background: none; border: 1.5px solid var(--warm-gray);
+  border-radius: 5px; cursor: pointer; padding: 0 8px;
+  height: 32px; font-size: 13px; font-weight: 800;
+  font-family: 'Syne', sans-serif; color: var(--mid-gray);
+  transition: all 0.15s; flex-shrink: 0;
+}
+.btn-zoom:hover { border-color: var(--accent); color: var(--accent); }
+body.dark .btn-zoom { border-color: #444; color: #ccc; }
+body.dark .btn-zoom:hover { border-color: var(--accent); color: var(--accent); }
+.zoom-btns {
+  position: fixed; right: 20px; top: 50%;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 12px; z-index: 50;
+}
+.zoom-circle {
+  width: 68px; height: 68px; border-radius: 50%;
+  background: var(--ink); color: white; border: none; cursor: pointer;
+  font-size: 20px; font-weight: 800; font-family: 'Syne', sans-serif;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.3); transition: all 0.15s; user-select: none;
+}
+.zoom-circle:hover { transform: scale(1.1); box-shadow: 0 5px 16px rgba(0,0,0,0.4); }
+.zoom-circle:active { transform: scale(0.95); }
+.zoom-reset { font-size: 26px !important; letter-spacing: 0; line-height: 1; display: flex !important; align-items: center; justify-content: center; padding-bottom: 4px; }
+body.dark .zoom-circle { background: white; color: #1a1a1a; }
+@media (max-width: 600px) { .zoom-btns { right: 8px; } }
+@media print { .zoom-btns { display: none; } }
+body.focus-mode .topbar,
+body.focus-mode .titlebar,
+body.focus-mode .toolbar-wrap,
+body.focus-mode .statusbar {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+body.focus-mode .ql-editor { min-height: 100vh; border-radius: 0; box-shadow: none; padding: 60px 80px !important; }
+body.focus-mode.focus-reveal .topbar,
+body.focus-mode.focus-reveal .titlebar,
+body.focus-mode.focus-reveal .toolbar-wrap {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0s;
+}
+.btn-tool.focus-active svg { fill: var(--accent) !important; }
+
+/* ── TEXTSTORLEK (skärmvisning) ── */
+.ql-editor { font-size: calc(16px * var(--zoom, 1)); }
+
+/* ── VÄLKOMSTMODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 500; display: flex; align-items: center; justify-content: center;
+  padding: 20px; cursor: pointer;
+}
+.modal-overlay.hidden { display: none; }
+.modal {
+  background: var(--panel); border-radius: 16px;
+  padding: 32px 28px; max-width: 420px; width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  cursor: default;
+}
+
+/* ── SKRIV-MODAL ── */
+.write-modal { max-width: 560px !important; }
+.write-prompt-textarea {
+  width: 100%; border: 1.5px solid var(--warm-gray); border-radius: 8px;
+  padding: 14px; font-family: Georgia, 'Times New Roman', serif;
+  font-size: 16px; line-height: 1.7; color: var(--ink);
+  background: var(--cream); resize: vertical; outline: none;
+  margin: 12px 0; min-height: 160px; box-sizing: border-box;
+}
+.write-prompt-textarea:focus { border-color: var(--ai-teal); }
+body.dark .write-prompt-textarea { background: #2a2a2a; color: var(--ink); border-color: #444; }
+.modal-btns { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.modal-logo {
+  font-family: 'DM Serif Display', serif; font-size: 36px;
+  color: var(--ink); margin-bottom: 12px;
+}
+.modal-logo em { font-style: italic; color: var(--accent); }
+.modal-title { font-size: 18px; font-weight: 800; margin-bottom: 12px; font-family: 'Syne', sans-serif; }
+.modal-text { font-size: 13px; line-height: 1.7; color: var(--ink); margin-bottom: 10px; font-family: 'Syne', sans-serif; }
+.modal-buttons { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+.modal-btn-primary {
+  background: var(--ai-teal); color: white; border: none;
+  padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 700;
+  font-family: 'Syne', sans-serif; cursor: pointer; transition: background 0.2s;
+}
+.modal-btn-primary:hover { background: #1a5c52; }
+.modal-btn-secondary {
+  background: none; border: 1.5px solid var(--warm-gray); color: var(--ink);
+  padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  font-family: 'Syne', sans-serif; cursor: pointer; transition: all 0.2s;
+}
+.modal-btn-secondary:hover { border-color: var(--ai-teal); color: var(--ai-teal); }
+
+/* ── HJÄLPKNAPP ── */
+/* ── DELA-KNAPP ── */
+.share-wrap { position: relative; flex-shrink: 0; }
+.btn-share {
+  background: none; border: 2px solid var(--warm-gray);
+  height: 56px; padding: 0 20px; border-radius: 10px; cursor: pointer;
+  font-size: 18px; font-weight: 700; font-family: 'Syne', sans-serif;
+  color: var(--ink); transition: all 0.2s; white-space: nowrap;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-share:hover { border-color: var(--ai-teal); color: var(--ai-teal); }
+.share-menu {
+  display: none; position: absolute; top: 60px; right: 0;
+  background: white; border: 2px solid var(--warm-gray);
+  border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  z-index: 200; min-width: 220px; overflow: hidden;
+}
+.share-menu.open { display: block; }
+.share-menu-item {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; cursor: pointer;
+  padding: 16px 20px; font-size: 17px; font-weight: 600;
+  font-family: 'Syne', sans-serif; color: var(--ink);
+  transition: background 0.15s; border-bottom: 1px solid var(--warm-gray);
+}
+.share-menu-item:last-child { border-bottom: none; }
+.share-menu-item:hover { background: var(--cream); }
+body.dark .share-menu { background: #2a2a2a; border-color: var(--warm-gray); }
+body.dark .share-menu-item { color: var(--ink); border-color: var(--warm-gray); }
+body.dark .share-menu-item:hover { background: #333; }
+
+.btn-help {
+  background: none; border: 2px solid var(--warm-gray);
+  width: 56px; height: 56px; border-radius: 10px; cursor: pointer;
+  font-size: 26px; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; flex-shrink: 0;
+}
+.btn-help:hover { border-color: var(--ai-teal); }
+
+/* ── HJÄLPPANEL ── */
+.help-panel {
+  position: fixed; top: 0; left: -380px; width: 360px;
+  height: 100vh; background: var(--panel);
+  border-right: 1.5px solid var(--warm-gray);
+  box-shadow: 4px 0 20px rgba(0,0,0,0.08);
+  z-index: 200; transition: left 0.3s ease;
+  display: flex; flex-direction: column;
+}
+.help-panel.open { left: 0; }
+.help-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px; border-bottom: 1.5px solid var(--warm-gray);
+  font-size: 13px; font-weight: 700; font-family: 'Syne', sans-serif;
+  color: var(--ink); flex-shrink: 0;
+}
+.help-header button { background: none; border: none; cursor: pointer; font-size: 14px; color: var(--mid-gray); }
+.help-header button:hover { color: var(--accent); }
+.help-body { flex: 1; overflow-y: auto; padding: 8px; }
+.help-section { margin-bottom: 8px; }
+.help-section-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase; color: var(--mid-gray);
+  padding: 10px 12px 4px; font-family: 'Syne', sans-serif;
+}
+.help-item {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 10px; padding: 10px 12px; border-radius: 6px;
+  border-bottom: 1px solid var(--warm-gray);
+}
+.help-item:last-child { border-bottom: none; }
+.help-item-text { flex: 1; }
+.help-item-text strong { font-size: 12px; font-weight: 700; font-family: 'Syne', sans-serif; display: block; margin-bottom: 3px; }
+.help-item-text p { font-size: 11px; color: var(--mid-gray); line-height: 1.5; margin: 0; font-family: 'Syne', sans-serif; }
+.help-video-btn {
+  background: var(--accent); color: white; border: none;
+  padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700;
+  font-family: 'Syne', sans-serif; cursor: pointer; white-space: nowrap;
+  text-decoration: none; flex-shrink: 0; align-self: flex-start;
+  margin-top: 2px; transition: background 0.2s;
+}
+.help-video-btn:hover { background: #a83e1e; }
+
+.btn-theme {
+  background: none; border: 2px solid var(--warm-gray);
+  width: 56px; height: 56px; border-radius: 10px; cursor: pointer;
+  font-size: 26px; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; flex-shrink: 0;
+}
+.btn-theme:hover { border-color: var(--accent); }
+
+@media (max-width: 600px) {
+  .help-panel { width: 100%; left: -100%; }
+  .modal { padding: 24px 18px; }
+}
+
+@media (max-width: 768px) {
+
+  /* Topbar — kompakt men klickbar */
+  .topbar { padding: 0 12px; height: 56px; }
+  .logo { font-size: 20px; }
+  .logo-dot { width: 5px; height: 5px; }
+  .btn-export { padding: 8px 12px; font-size: 13px; }
+  .save-indicator { display: none; }
+
+  /* Titlebar */
+  .titlebar { padding: 0 12px; height: 46px; }
+  .doc-title-label { display: none; }
+  .doc-title-input { font-size: 15px; }
+
+  /* Toolbar — scrollbar horisontellt, inga radbrytningar */
+  .toolbar-wrap {
+    padding: 0 8px;
+    height: 56px;
+    overflow-x: auto; overflow-y: hidden;
+    flex-wrap: nowrap; gap: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .toolbar-wrap::-webkit-scrollbar { display: none; }
+
+  /* AI-meny öppnas uppåt på mobil */
+  .ai-menu { top: auto; bottom: 44px; }
+
+  /* Custom selects — touch-storlek */
+  .custom-style-select,
+  .ql-toolbar.ql-snow select {
+    font-size: 13px; height: 44px; padding: 4px 8px;
+  }
+
+  /* Editor — touch-vänlig */
+  .ql-editor {
+    padding: 24px 16px !important;
+    font-size: 16px !important;
+    line-height: 1.8 !important;
+    min-height: 400px;
+  }
+
+  /* Workspace */
+  .workspace { padding: 0 4px 32px; }
+  .editor-wrap { max-width: 100%; }
+
+  /* Touch-targets — minst 44px */
+  .btn-tool { width: 44px; height: 44px; }
+  .btn-tool svg { width: 20px; height: 20px; }
+  .btn-ai { height: 44px; padding: 0 14px; font-size: 14px; }
+  .btn-clean { width: 44px; height: 44px; }
+  .btn-clean svg { width: 20px; height: 20px; }
+  .btn-key, .btn-help, .btn-theme { width: 44px; height: 44px; font-size: 18px; }
+  .btn-share { height: 44px; padding: 0 14px; }
+  .btn-ptsize { width: 44px; height: 44px; font-size: 18px; }
+  .ql-toolbar.ql-snow button { width: 44px !important; height: 44px !important; }
+  .ql-toolbar.ql-snow button svg { width: 20px !important; height: 20px !important; }
+
+  /* Statusbar — kompakt */
+  .statusbar { height: 44px; font-size: 12px; gap: 8px; padding: 0 12px; }
+  .statusbar-copy { display: none; }
+
+  /* AI-panel */
+  .ai-panel { width: 100%; right: 0; left: 0; top: auto; bottom: 44px; border-radius: 12px 12px 0 0; }
+  .ai-panel-body { font-size: 14px; }
+
+  /* Versionshistorik */
+  .history-panel { width: 100%; right: -100%; }
+  .history-panel.open { right: 0; }
+
+  /* Flytande zoom — flytta upp lite */
+  .zoom-btns { bottom: 60px; }
+
+  /* Restore-knapp alltid synlig */
+  .history-restore-btn { display: inline-block; }
+
+  /* Språkmeny — öppnar uppåt */
+  .uilang-menu { bottom: 48px; max-height: 260px; }
+}
+
+/* ── UTSKRIFT / PDF ── */
+@media print {
+  .topbar, .titlebar, .toolbar-wrap,
+  .ai-panel, .ai-toast, .history-panel,
+  .help-panel, .modal-overlay, .statusbar,
+  .zoom-btns { display: none !important; }
+
+  html, body {
+    background: white !important; height: auto !important;
+    overflow: visible !important; zoom: 1 !important;
+  }
+
+  .workspace { display: block !important; padding: 0 !important; overflow: visible !important; }
+  .editor-wrap { width: 100% !important; max-width: 100% !important; }
+  .ql-toolbar { display: none !important; }
+  .ql-container.ql-snow { border: none !important; }
+  .ql-editor {
+    padding: 2.5cm !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    font-size: 12pt !important;
+    line-height: 1.75 !important;
+    min-height: auto !important;
+    background: white !important;
+    color: black !important;
+    width: 100% !important;
+  }
+  .ql-editor h1 { font-size: 24pt !important; margin-bottom: 12pt !important; }
+  .ql-editor h2 { font-size: 18pt !important; margin-bottom: 8pt !important; border: none !important; }
+  .ql-editor h3 { font-size: 14pt !important; margin-bottom: 6pt !important; }
+  .ql-editor h4 { font-size: 12pt !important; font-style: italic !important; margin-bottom: 4pt !important; }
+  .ql-editor p  { margin-bottom: 6pt !important; orphans: 3; widows: 3; }
+  @page { margin: 0; size: A4; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">Auto<em>text</em><span class="logo-dot"></span></div>
+  <div class="topbar-right">
+    <span class="save-indicator" id="saveIndicator">Osparad</span>
+    <a class="btn-donate" href="https://ko-fi.com/autotext" target="_blank" rel="noopener" title="Stöd Autotext med en kopp kaffe ☕" id="btnDonate"><span class="coffee-icon">☕</span> Donera</a>
+    <button class="btn-key" onclick="setGroqKey()" id="btnKey" title="Ange Groq API-nyckel">🔑</button>
+    <div class="share-wrap" id="shareWrap">
+      <button class="btn-share" onclick="toggleShareMenu()" title="Dela dokument">⬆ Dela</button>
+      <div class="share-menu" id="shareMenu">
+        <button class="share-menu-item" onclick="shareEmail()">📧 Skicka via e-post</button>
+        <button class="share-menu-item" onclick="copyText()">📋 Kopiera text</button>
+      </div>
+    </div>
+    <button class="btn-copy" id="btnCopy" onclick="copyTextDirect()" title="Kopiera all text">📋 Kopiera</button>
+    <button class="btn-copy" id="btnPresent" onclick="startPresentation()" title="Presentationsläge">🎬 Visa</button>
+    <button class="btn-export" onclick="exportToWord()">⬇ Word</button>
+    <button class="btn-export btn-pdf" onclick="exportToPDF()" title="Spara som PDF">⬇ PDF</button>
+  </div>
+</div>
+
+<!-- TITLEBAR -->
+<div class="titlebar">
+  <span class="doc-title-label">Dokument:</span>
+  <input class="doc-title-input" id="docTitle" type="text" placeholder="Namnlöst dokument" maxlength="100" oninput="saveTitle()">
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar-wrap">
+<div class="toolbar-inner">
+  <div class="ai-menu-wrap" id="aiMenuWrap">
+    <button class="btn-ai" id="btnAI" onclick="toggleAIMenu()" title="AI-hjälp">✨ AI</button>
+    <div class="ai-menu" id="aiMenu">
+      <button class="ai-menu-item" onclick="runAI('improve')">✨ Förbättra min text</button>
+      <button class="ai-menu-item" onclick="runAI('summarize')">📋 Sammanfatta texten</button>
+      <button class="ai-menu-item" onclick="runAI('write')">📝 Hjälp mig skriva</button>
+      <button class="ai-menu-item" onclick="runAI('learn')">🎓 Lär mig skriva</button>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <button class="btn-tool" onclick="quill.history.undo()" title="Ångra (Ctrl+Z)">
+    <svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+  </button>
+  <button class="btn-tool" onclick="quill.history.redo()" title="Gör om (Ctrl+Y)">
+    <svg viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 15.7c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 15h9V6l-3.6 4.6z"/></svg>
+  </button>
+  <div class="divider"></div>
+  <button class="btn-tool" id="historyBtn" onclick="toggleHistory()" title="Versionshistorik">
+    <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+  </button>
+  <div class="divider"></div>
+  <select class="custom-style-select" id="styleSelect" onmousedown="this._prev=this.value" onchange="applyStyle(this.value); this._prev=this.value" onclick="if(this.value===this._prev){applyStyle(this.value)}"  >
+    <option value="normal" selected>Vanlig text</option>
+    <option value="h1">Rubrik 1</option>
+    <option value="h2">Rubrik 2</option>
+    <option value="h3">Rubrik 3</option>
+    <option value="h4">Rubrik 4</option>
+  </select>
+  <button class="btn-ptsize" id="btnSizePlus" title="Större textstorlek">⬆</button>
+  <span id="ptSizeDisplay" style="
+    font-family:'Syne',sans-serif; font-weight:700; font-size:18px;
+    color:var(--ink); min-width:44px; text-align:center;
+    user-select:none; flex-shrink:0; line-height:1;
+    pointer-events:none;
+  ">12</span>
+  <button class="btn-ptsize" id="btnSizeMinus" title="Mindre textstorlek">⬇</button>
+  <select class="custom-style-select" id="fontSelect" onchange="applyFont(this.value)" style="width:120px">
+    <option value="sans" selected>Modern</option>
+    <option value="georgia">Bok</option>
+    <option value="courier">Skrivmaskin</option>
+  </select>
+  <div class="divider"></div>
+  <div id="toolbar">
+    <div class="divider"></div>
+    <span class="ql-formats">
+      <button class="ql-bold"></button>
+      <button class="ql-italic"></button>
+      <button class="ql-underline"></button>
+      <button class="ql-strike"></button>
+    </span>
+    <div class="divider"></div>
+    <span class="ql-formats">
+      <button class="ql-list" value="bullet"></button>
+      <button class="ql-list" value="ordered"></button>
+    </span>
+    <div class="divider"></div>
+    <button class="btn-clean" onclick="cleanFormatting()" title="Rensa konstig formatering">
+      <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+    </button>
+    <button class="btn-clean" onclick="copySelection()" title="Kopiera markering (Ctrl+C)">
+      <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+    </button>
+
+  </div>
+  <div class="divider"></div>
+  <button class="btn-tool" id="btnFocus" onclick="toggleFocus()" title="Fokusläge">
+    <svg viewBox="0 0 24 24"><path d="M3 9H1v12h12v-2H3V9zm16-6H9v12h12V3h-2zm0 10H11V5h8v8zm-8 8h2v2h-2zm4 0h2v2h-2zm4 0h2v2h-2z"/></svg>
+  </button>
+  <button class="btn-theme" id="btnTheme" onclick="toggleTheme()" title="Byt tema">☀️</button>
+  <button class="btn-help" onclick="toggleHelp()" title="Hjälp">❓</button>
+</div><!-- /toolbar-inner -->
+</div><!-- /toolbar-wrap -->
+
+<!-- VÄLKOMSTRUTA (visas första gången) -->
+<div class="modal-overlay hidden" id="welcomeModal">
+  <div class="modal">
+    <div class="modal-logo">Auto<em>text</em></div>
+    <h2 class="modal-title" id="welcomeTitle">Välkommen! 👋</h2>
+    <p class="modal-text" id="welcomeText1">Autotext är ett gratis skrivverktyg. Skriv ditt dokument, spara automatiskt och exportera till Word eller PDF.</p>
+    <p class="modal-text" id="welcomeText2">Har du en <strong>Groq API-nyckel</strong>? Klicka på 🔑 för att aktivera AI som hjälper dig skriva bättre svenska.</p>
+    <div class="modal-buttons">
+      <button class="modal-btn-primary" id="welcomeBtn1" onclick="closeWelcome()">Kom igång →</button>
+      <button class="modal-btn-secondary" id="welcomeBtn2" onclick="closeWelcome(); toggleHelp()">Se hur det fungerar ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- HJÄLPPANEL -->
+<div class="help-panel" id="helpPanel">
+  <div class="help-header">
+    <span>❓ Hjälp & Guider</span>
+    <button onclick="toggleHelp()">✕</button>
+  </div>
+  <div class="help-body">
+
+    <div class="help-section">
+      <div class="help-section-title">📝 Kom igång</div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>Hur skriver jag ett dokument?</strong>
+          <p>Klicka i det vita fältet och börja skriva. Allt sparas automatiskt.</p>
+        </div>
+        <a class="help-video-btn" href="https://youtube.com/watch?v=ERSÄTT_MED_DIN_LÄNK" target="_blank">▶ Se video</a>
+      </div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>Hur namnger jag mitt dokument?</strong>
+          <p>Klicka på "Namnlöst dokument" längst upp och skriv in ett namn.</p>
+        </div>
+        <a class="help-video-btn" href="https://youtube.com/watch?v=ERSÄTT_MED_DIN_LÄNK" target="_blank">▶ Se video</a>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">✏️ Formatering</div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>Hur gör jag text fet, kursiv eller understruken?</strong>
+          <p>Markera texten och klicka på B, I eller U i verktygsfältet.</p>
+        </div>
+        <a class="help-video-btn" href="https://youtube.com/watch?v=ERSÄTT_MED_DIN_LÄNK" target="_blank">▶ Se video</a>
+      </div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>Hur lägger jag till en rubrik?</strong>
+          <p>Klicka på "Vanlig text" och välj "Stor rubrik" eller "Mellanrubrik".</p>
+        </div>
+        <a class="help-video-btn" href="https://youtube.com/watch?v=ERSÄTT_MED_DIN_LÄNK" target="_blank">▶ Se video</a>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">✨ AI-hjälp</div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>Förbättra min text</strong>
+          <p>Markera text → klicka ✨ AI → "Förbättra min text". AI rättar stavning och grammatik.</p>
+        </div>
+        <a class="help-video-btn" href="https://youtube.com/watch?v=ERSÄTT_MED_DIN_LÄNK" target="_blank">▶ Se video</a>
+      </div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>Hjälp mig skriva</strong>
+          <p>Klicka ✨ AI → "Hjälp mig skriva" → beskriv vad du vill säga på ditt eget språk.</p>
+        </div>
+        <a class="help-video-btn" href="https://youtube.com/watch?v=ERSÄTT_MED_DIN_LÄNK" target="_blank">▶ Se video</a>
+      </div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>Lär mig skriva</strong>
+          <p>Skriv din text → klicka ✨ AI → "Lär mig skriva". AI ger feedback som en lärare.</p>
+        </div>
+        <a class="help-video-btn" href="https://youtube.com/watch?v=ERSÄTT_MED_DIN_LÄNK" target="_blank">▶ Se video</a>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">💾 Exportera</div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>Spara som Word-fil</strong>
+          <p>Klicka på "⬇ Word" uppe till höger.</p>
+        </div>
+        <a class="help-video-btn" href="https://youtube.com/watch?v=ERSÄTT_MED_DIN_LÄNK" target="_blank">▶ Se video</a>
+      </div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>Spara som PDF</strong>
+          <p>Klicka på "⬇ PDF" → välj "Spara som PDF" som skrivare → klicka på <strong>Fler inställningar</strong> → stäng av <strong>Sidhuvuden och sidfötter</strong> → spara.</p>
+        </div>
+        <a class="help-video-btn" href="https://youtube.com/watch?v=ERSÄTT_MED_DIN_LÄNK" target="_blank">▶ Se video</a>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">⌨️ Skriva på andra språk</div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>Dari, Arabiska, Somaliska m.fl.</strong>
+          <p>Du kan skriva på vilket språk som helst! Aktivera tangentbordet för ditt språk i datorn först.</p>
+        </div>
+        <a class="help-video-btn" href="https://youtube.com/watch?v=ERSÄTT_MED_DIN_LÄNK" target="_blank">▶ Se video</a>
+      </div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>Windows</strong>
+          <p>Inställningar → Tid och språk → Språk → Lägg till språk. Växla med <strong>Win + Mellanslag</strong>.</p>
+        </div>
+      </div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>Ubuntu / Linux</strong>
+          <p>Inställningar → Region & Språk → Indatakällor → lägg till språk. Växla med <strong>Super + Mellanslag</strong>.</p>
+        </div>
+      </div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>Mobil (Android/iPhone)</strong>
+          <p>Inställningar → Tangentbord → Lägg till tangentbord. Växla med 🌐-knappen på tangentbordet.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">🔑 Aktivera AI</div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>Hur aktiverar jag AI-funktionerna?</strong>
+          <p>Gå till console.groq.com, skapa ett gratis konto, kopiera din nyckel och klistra in den via 🔑-knappen.</p>
+        </div>
+        <a class="help-video-btn" href="https://youtube.com/watch?v=ERSÄTT_MED_DIN_LÄNK" target="_blank">▶ Se video</a>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">🔗 Verktyg</div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>🎨 Canva</strong>
+          <p>Designa snygga affischer, presentationer och dokument. Kopiera din text från Autotext och klistra in i Canva.</p>
+        </div>
+        <a class="help-video-btn help-link-btn" href="https://www.canva.com" target="_blank">Öppna →</a>
+      </div>
+      <div class="help-item">
+        <div class="help-item-text">
+          <strong>🌐 Google Translate</strong>
+          <p>Översätt text mellan svenska och ditt modersmål. Klistra in texten direkt.</p>
+        </div>
+        <a class="help-video-btn help-link-btn" href="https://translate.google.com" target="_blank">Öppna →</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- WORKSPACE -->
+<!-- AI PANEL (feedback/lär) -->
+<div class="ai-panel" id="aiPanel" style="display:none">
+  <div class="ai-panel-header">
+    <span id="aiPanelTitle">AI-svar</span>
+    <button onclick="closeAIPanel()">✕</button>
+  </div>
+  <div class="ai-panel-body" id="aiPanelBody"></div>
+  <div class="ai-panel-footer" id="aiPanelFooter" style="display:none">
+    <button class="ai-panel-btn-apply" id="applyBtn" onclick="applyAISuggestion()">↩ Ersätt min text med detta</button>
+    <p id="aiDisclaimer" style="font-size:16px;color:var(--ink);margin:8px 0 0;line-height:1.5;font-family:'Inter',sans-serif;">⚠ AI kan göra fel. Läs igenom och kontrollera alltid resultatet.</p>
+  </div>
+</div>
+
+<div class="workspace">
+  <div class="zoom-container" id="zoomContainer">
+  <div class="editor-wrap">
+    <div id="editor">
+      <h1>Välkommen till Autotext</h1>
+      <p>Skriv ditt dokument här i lugn och ro. Allt sparas automatiskt.</p>
+      <p>Markera text och tryck <strong>✨ AI</strong> för att förbättra språket.</p>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- ZOOM-KNAPPAR (flytande till höger) -->
+<div class="zoom-btns" id="zoomBtns">
+  <button class="zoom-circle" id="zoomIn" onclick="changeZoom(1)" title="Zooma in">A+</button>
+  <button class="zoom-circle" id="zoomOut" onclick="changeZoom(-1)" title="Zooma ut">A−</button>
+  <button class="zoom-circle zoom-reset" id="zoomReset" onclick="resetZoom()" title="Återställ zoom">↔</button>
+</div>
+
+<!-- SKRIV-MODAL -->
+<div class="modal-overlay hidden" id="writeModal">
+  <div class="modal write-modal">
+    <div class="modal-title" id="writeModalTitle">📝 Hjälp mig skriva</div>
+    <p class="modal-text" id="writeModalDesc">Beskriv vad du vill skriva — på vilket språk du vill. AI skriver ett utkast på svenska.</p>
+    <textarea id="writePromptInput" class="write-prompt-textarea" rows="5" placeholder="T.ex: Jag vill skriva ett brev till min hyresvärd om att det läcker vatten i badrummet..."></textarea>
+    <div class="modal-btns">
+      <button class="modal-btn-primary" id="writeSubmitBtn" onclick="submitWritePrompt()">✨ Skriv utkast</button>
+      <button class="modal-btn-secondary" id="writeCancelBtn" onclick="closeWriteModal()">Avbryt</button>
+    </div>
+  </div>
+</div>
+
+<!-- STATUSBAR -->
+<div class="statusbar">
+  <button class="statusbar-uilang" id="uiLangBtn" onclick="toggleUILang()" title="Byt gränssnittsspråk / Change interface language">🌐 <span id="uiLangLabel">SV</span></button>
+  <div class="uilang-menu hidden" id="uiLangMenu">
+    <button onclick="setUILang('sv')">🇸🇪 Svenska</button>
+    <button onclick="setUILang('en')">🇬🇧 English</button>
+    <button onclick="setUILang('am')">🇪🇹 አማርኛ</button>
+    <button onclick="setUILang('ar')">🇸🇦 العربية</button>
+    <button onclick="setUILang('bn')">🇧🇩 বাংলা</button>
+    <button onclick="setUILang('fa')">🇮🇷 دری</button>
+    <button onclick="setUILang('de')">🇩🇪 Deutsch</button>
+    <button onclick="setUILang('es')">🇪🇸 Español</button>
+    <button onclick="setUILang('tl')">🇵🇭 Filipino</button>
+    <button onclick="setUILang('fr')">🇫🇷 Français</button>
+    <button onclick="setUILang('hi')">🇮🇳 हिन्दी</button>
+    <button onclick="setUILang('id')">🇮🇩 Bahasa Indonesia</button>
+    <button onclick="setUILang('ja')">🇯🇵 日本語</button>
+    <button onclick="setUILang('pl')">🇵🇱 Polski</button>
+    <button onclick="setUILang('pt')">🇧🇷 Português</button>
+    <button onclick="setUILang('ro')">🇷🇴 Română</button>
+    <button onclick="setUILang('ru')">🇷🇺 Русский</button>
+    <button onclick="setUILang('so')">🇸🇴 Soomaali</button>
+    <button onclick="setUILang('th')">🇹🇭 ภาษาไทย</button>
+    <button onclick="setUILang('ti')">🇪🇷 ትግርኛ</button>
+    <button onclick="setUILang('tr')">🇹🇷 Türkçe</button>
+    <button onclick="setUILang('ur')">🇵🇰 اردو</button>
+    <button onclick="setUILang('vi')">🇻🇳 Tiếng Việt</button>
+    <button onclick="setUILang('zh')">🇨🇳 中文</button>
+  </div>
+  <span class="statusbar-spacer"></span>
+  <span id="wordCount">0 ord</span>
+  <span class="statusbar-dot"></span>
+  <span id="charCount">0 tecken</span>
+  <span class="statusbar-dot"></span>
+  <span id="readTime">0 min läsning</span>
+  <span class="statusbar-dot"></span>
+  <span class="statusbar-spacer"></span>
+  <span class="statusbar-copy">© 2026 Per Esping · <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" class="statusbar-link">CC BY-NC-ND 4.0</a></span>
+</div>
+
+<!-- PRESENTATION -->
+<div id="presentOverlay" class="present-overlay hidden">
+  <button class="present-close" onclick="endPresentation()" title="Stäng (Esc)">✕</button>
+  <div class="present-counter" id="presentCounter"></div>
+  <div class="present-zoom-btns">
+    <button class="present-zoom-btn" onclick="presentZoom(1)" title="Större text">A+</button>
+    <span id="presentZoomLabel">100%</span>
+    <button class="present-zoom-btn" onclick="presentZoom(-1)" title="Mindre text">A−</button>
+  </div>
+  <div class="present-content">
+    <div class="present-title" id="presentTitle"></div>
+    <div class="present-body" id="presentBody"></div>
+  </div>
+  <div class="present-nav">
+    <button class="present-btn" id="presentPrev" onclick="presentNav(-1)">←</button>
+    <button class="present-btn" id="presentNext" onclick="presentNav(1)">→</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="ai-toast" id="aiToast">
+  <span class="toast-dot"></span>
+  <span id="toastMsg"></span>
+</div>
+
+<!-- VERSIONSHISTORIK-PANEL -->
+<div class="history-panel" id="historyPanel">
+  <div class="history-header">
+    <span>Versionshistorik</span>
+    <button class="history-close" onclick="toggleHistory()">✕</button>
+  </div>
+  <div class="history-list" id="historyList"></div>
+</div>
+
+<script>
+// ── GRÄNSSNITTSSPRÅK (måste vara först) ──
+const UI_LANG_KEY = 'autotext_uilang';
+const UI_TRANSLATIONS = {
+  sv: { aiBtn: '✨ AI', improve: '✨ Förbättra min text', summarize: '📋 Sammanfatta texten', write: '📝 Hjälp mig skriva', learn: '🎓 Lär mig skriva', normal: 'Vanlig text', small: 'Liten text', large: 'Stor text', h1: 'Rubrik 1', h2: 'Rubrik 2', h3: 'Rubrik 3', h4: 'Rubrik 4', share: '⬆ Dela', email: '📧 Skicka via e-post', copy: '📋 Kopiera text', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ Sparat', unsaved: 'Osparad', saving: 'Sparar...', docLabel: 'Dokument:', docPlaceholder: 'Namnlöst dokument', welcomeTitle: 'Välkommen! 👋', welcomeText1: 'Autotext är ett gratis skrivverktyg.', welcomeBtn1: 'Kom igång →', welcomeBtn2: 'Se hur det fungerar ▶', words: 'ord', chars: 'tecken', readTime: 'min läsning', selectText: '⚠ Markera text du vill förbättra först', aiWorking: 'AI förbättrar texten...', aiSummarizing: 'AI sammanfattar...', aiDone: '✓ Text förbättrad', aiGood: '✓ Texten ser redan bra ut', aiError: '⚠ AI-fel – försök igen', netError: '⚠ Nätverksfel', noKey: '💡 Klicka 🔑 för att aktivera AI', keyAdded: '✓ AI aktiverad!', keyRemoved: '🔑 AI-nyckel borttagen', copied: '✓ Text kopierad', cleanDone: '🧹 Formatering rensad', focusOn: '🎯 Fokusläge på', focusOff: '🎯 Fokusläge av', restored: '↩ Version återställd', aiSuggestion: 'AI skriver utkast...', aiFeedback: 'AI analyserar din text...', applyDone: '✓ Text infogad', writingPrompt: 'Vad vill du skriva? Beskriv kort:', pdfTip: '📄 Stäng av "Sidhuvuden och sidfötter" under Fler inställningar', applyBtn: '↩ Ersätt min text med detta', aiDisclaimer: '⚠ AI kan göra fel. Läs igenom och kontrollera alltid resultatet.', zoomIn: 'Zooma in', zoomOut: 'Zooma ut', zoomReset: 'Återställ zoom', writeDraft: '✨ Skriv utkast', cancel: 'Avbryt', writeEx: 'T.ex: Jag vill skriva ett brev till min hyresvärd om att det läcker vatten i badrummet...' },
+  en: { aiBtn: '✨ AI', improve: '✨ Improve my text', summarize: '📋 Summarize text', write: '📝 Help me write', learn: '🎓 Teach me to write', normal: 'Normal text', small: 'Small text', large: 'Large text', h1: 'Heading 1', h2: 'Heading 2', h3: 'Heading 3', h4: 'Heading 4', share: '⬆ Share', email: '📧 Send via email', copy: '📋 Copy text', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ Saved', unsaved: 'Unsaved', saving: 'Saving...', docLabel: 'Document:', docPlaceholder: 'Untitled document', welcomeTitle: 'Welcome! 👋', welcomeText1: 'Autotext is a free writing tool.', welcomeBtn1: 'Get started →', welcomeBtn2: 'See how it works ▶', words: 'words', chars: 'characters', readTime: 'min read', selectText: '⚠ Select text to improve first', aiWorking: 'AI is improving text...', aiDone: '✓ Text improved', aiGood: '✓ Text looks good already', aiError: '⚠ AI error – try again', netError: '⚠ Network error', noKey: '💡 Click 🔑 to activate AI', keyAdded: '✓ AI activated!', keyRemoved: '🔑 API key removed', copied: '✓ Text copied', cleanDone: '🧹 Formatting cleared', focusOn: '🎯 Focus mode on', focusOff: '🎯 Focus mode off', restored: '↩ Version restored', aiSuggestion: 'AI is writing draft...', aiFeedback: 'AI is analysing your text...', applyDone: '✓ Text inserted', writingPrompt: 'What do you want to write? Describe briefly:', pdfTip: '📄 Disable "Headers and footers" in More settings', applyBtn: '↩ Replace my text with this', aiDisclaimer: '⚠ AI can make mistakes. Always read and check the result.', zoomIn: 'Zoom in', zoomOut: 'Zoom out', zoomReset: 'Reset zoom', writeDraft: '✨ Write draft', cancel: 'Cancel', writeEx: 'E.g: I want to write a letter to my landlord about a water leak in the bathroom...' },
+  zh: { aiBtn: '✨ AI', improve: '✨ 改进文本', summarize: '📋 摘要文本', write: '📝 帮我写作', learn: '🎓 教我写作', normal: '正文', small: '小字', large: '大字', h1: '大标题', h2: '小标题', h3: '标题3', h4: '标题4', share: '⬆ 分享', email: '📧 发送邮件', copy: '📋 复制文本', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ 已保存', unsaved: '未保存', saving: '保存中...', docLabel: '文档：', docPlaceholder: '无标题文档', welcomeTitle: '欢迎！👋', welcomeText1: 'Autotext 是一款免费写作工具。', welcomeBtn1: '开始使用 →', welcomeBtn2: '查看使用方法 ▶', words: '字', chars: '字符', readTime: '分钟阅读', selectText: '⚠ 请先选择要改进的文本', aiWorking: 'AI 正在改进文本...', aiDone: '✓ 文本已改进', aiGood: '✓ 文本已经很好了', aiError: '⚠ AI错误 – 请重试', netError: '⚠ 网络错误', noKey: '💡 点击 🔑 激活AI', keyAdded: '✓ AI已激活！', keyRemoved: '🔑 密钥已删除', copied: '✓ 已复制', cleanDone: '🧹 格式已清除', focusOn: '🎯 专注模式开启', focusOff: '🎯 专注模式关闭', restored: '↩ 版本已恢复', aiSuggestion: 'AI正在写草稿...', aiFeedback: 'AI正在分析文本...', applyDone: '✓ 文本已插入', writingPrompt: '你想写什么？简短描述：', pdfTip: '📄 在更多设置中关闭"页眉和页脚"', applyBtn: '↩ 用此替换我的文本', aiDisclaimer: '⚠ AI 可能犯错。请始终阅读并检查结果。', zoomIn: '放大', zoomOut: '缩小', zoomReset: '重置缩放', writeDraft: '✨ 写草稿', cancel: '取消', writeEx: '例如：我想写一封信给房东，关于浴室漏水问题...' },
+  hi: { aiBtn: '✨ AI', improve: '✨ पाठ सुधारें', summarize: '📋 पाठ सारांश', write: '📝 लिखने में मदद करें', learn: '🎓 लिखना सिखाएं', normal: 'सामान्य पाठ', small: 'छोटा पाठ', large: 'बड़ा पाठ', h1: 'बड़ा शीर्षक', h2: 'उपशीर्षक', h3: 'शीर्षक 3', h4: 'शीर्षक 4', share: '⬆ साझा करें', email: '📧 ईमेल भेजें', copy: '📋 पाठ कॉपी करें', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ सहेजा गया', unsaved: 'सहेजा नहीं', saving: 'सहेजा जा रहा है...', docLabel: 'दस्तावेज़:', docPlaceholder: 'बिना शीर्षक', welcomeTitle: 'स्वागत है! 👋', welcomeText1: 'Autotext एक मुफ़्त लेखन उपकरण है।', welcomeBtn1: 'शुरू करें →', welcomeBtn2: 'देखें कैसे काम करता है ▶', words: 'शब्द', chars: 'अक्षर', readTime: 'मिनट', selectText: '⚠ पहले पाठ चुनें', aiWorking: 'AI पाठ सुधार रहा है...', aiDone: '✓ पाठ सुधरा', aiGood: '✓ पाठ पहले से अच्छा है', aiError: '⚠ AI त्रुटि', netError: '⚠ नेटवर्क त्रुटि', noKey: '💡 🔑 दबाएं', keyAdded: '✓ AI सक्रिय!', keyRemoved: '🔑 कुंजी हटाई', copied: '✓ कॉपी हुआ', cleanDone: '🧹 फ़ॉर्मेटिंग साफ़', focusOn: '🎯 फ़ोकस मोड चालू', focusOff: '🎯 फ़ोकस मोड बंद', restored: '↩ संस्करण पुनर्स्थापित', aiSuggestion: 'AI लिख रहा है...', aiFeedback: 'AI विश्लेषण कर रहा है...', applyDone: '✓ पाठ डाला गया', writingPrompt: 'आप क्या लिखना चाहते हैं?', pdfTip: '📄 "हेडर और फ़ुटर" बंद करें', applyBtn: '↩ मेरा पाठ इससे बदलें', aiDisclaimer: '⚠ AI गलती कर सकता है। हमेशा परिणाम पढ़ें और जाँचें।', zoomIn: 'ज़ूम बढ़ाएं', zoomOut: 'ज़ूम घटाएं', zoomReset: 'ज़ूम रीसेट', writeDraft: '✨ मसौदा लिखें', cancel: 'रद्द करें', writeEx: 'उदा: मैं अपने मकान मालिक को बाथरूम में पानी लीक के बारे में पत्र लिखना चाहता हूं...' },
+  es: { aiBtn: '✨ IA', improve: '✨ Mejorar texto', summarize: '📋 Resumir texto', write: '📝 Ayúdame a escribir', learn: '🎓 Enséñame a escribir', normal: 'Texto normal', small: 'Texto pequeño', large: 'Texto grande', h1: 'Título grande', h2: 'Subtítulo', h3: 'Título 3', h4: 'Título 4', h3: 'Título 3', h4: 'Título 4', share: '⬆ Compartir', email: '📧 Enviar por email', copy: '📋 Copiar texto', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ Guardado', unsaved: 'Sin guardar', saving: 'Guardando...', docLabel: 'Documento:', docPlaceholder: 'Documento sin título', welcomeTitle: '¡Bienvenido! 👋', welcomeText1: 'Autotext es una herramienta de escritura gratuita.', welcomeBtn1: 'Empezar →', welcomeBtn2: 'Ver cómo funciona ▶', words: 'palabras', chars: 'caracteres', readTime: 'min lectura', selectText: '⚠ Selecciona texto primero', aiWorking: 'IA mejorando texto...', aiDone: '✓ Texto mejorado', aiGood: '✓ El texto ya está bien', aiError: '⚠ Error de IA', netError: '⚠ Error de red', noKey: '💡 Clic en 🔑 para activar IA', keyAdded: '✓ IA activada!', keyRemoved: '🔑 Clave eliminada', copied: '✓ Copiado', cleanDone: '🧹 Formato limpiado', focusOn: '🎯 Modo enfoque activado', focusOff: '🎯 Modo enfoque desactivado', restored: '↩ Versión restaurada', aiSuggestion: 'IA escribiendo borrador...', aiFeedback: 'IA analizando texto...', applyDone: '✓ Texto insertado', writingPrompt: '¿Qué quieres escribir?', pdfTip: '📄 Desactiva "Encabezados y pies de página"', applyBtn: '↩ Reemplazar mi texto con esto', aiDisclaimer: '⚠ La IA puede cometer errores. Siempre lee y revisa el resultado.', zoomIn: 'Acercar', zoomOut: 'Alejar', zoomReset: 'Restablecer zoom', writeDraft: '✨ Escribir borrador', cancel: 'Cancelar', writeEx: 'Ej: Quiero escribir una carta a mi casero sobre una fuga de agua en el baño...' },
+  ar: { aiBtn: '✨ ذكاء', improve: '✨ تحسين النص', summarize: '📋 تلخيص النص', write: '📝 ساعدني في الكتابة', learn: '🎓 علّمني الكتابة', normal: 'نص عادي', small: 'نص صغير', large: 'نص كبير', h1: 'عنوان رئيسي', h2: 'عنوان فرعي', h3: 'عنوان 3', h4: 'عنوان 4', share: '⬆ مشاركة', email: '📧 إرسال بالبريد', copy: '📋 نسخ النص', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ محفوظ', unsaved: 'غير محفوظ', saving: 'جاري الحفظ...', docLabel: 'المستند:', docPlaceholder: 'مستند بلا عنوان', welcomeTitle: 'مرحباً! 👋', welcomeText1: 'Autotext أداة كتابة مجانية.', welcomeBtn1: 'ابدأ →', welcomeBtn2: 'شاهد كيف يعمل ▶', words: 'كلمة', chars: 'حرف', readTime: 'دقيقة قراءة', selectText: '⚠ اختر النص أولاً', aiWorking: 'AI يحسّن النص...', aiDone: '✓ تم تحسين النص', aiGood: '✓ النص جيد بالفعل', aiError: '⚠ خطأ في AI', netError: '⚠ خطأ في الشبكة', noKey: '💡 انقر 🔑 لتفعيل AI', keyAdded: '✓ تم تفعيل AI!', keyRemoved: '🔑 تم حذف المفتاح', copied: '✓ تم النسخ', cleanDone: '🧹 تم مسح التنسيق', focusOn: '🎯 وضع التركيز', focusOff: '🎯 إيقاف التركيز', restored: '↩ تم استعادة النسخة', aiSuggestion: 'AI يكتب مسودة...', aiFeedback: 'AI يحلل النص...', applyDone: '✓ تم إدراج النص', writingPrompt: 'ماذا تريد أن تكتب؟', pdfTip: '📄 أوقف "الرأس والتذييل"', applyBtn: '↩ استبدل نصي بهذا', aiDisclaimer: '⚠ قد يخطئ AI. اقرأ النتيجة دائمًا وتحقق منها.', zoomIn: 'تكبير', zoomOut: 'تصغير', zoomReset: 'إعادة تعيين التكبير', writeDraft: '✨ كتابة مسودة', cancel: 'إلغاء', writeEx: 'مثال: أريد كتابة رسالة إلى المالك بشأن تسرب المياه في الحمام...' },
+  fr: { aiBtn: '✨ IA', improve: '✨ Améliorer le texte', summarize: '📋 Résumer le texte', write: '📝 Aidez-moi à écrire', learn: '🎓 Apprenez-moi à écrire', normal: 'Texte normal', small: 'Petit texte', large: 'Grand texte', h1: 'Grand titre', h2: 'Sous-titre', h3: 'Titre 3', h4: 'Titre 4', share: '⬆ Partager', email: '📧 Envoyer par email', copy: '📋 Copier le texte', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ Enregistré', unsaved: 'Non enregistré', saving: 'Enregistrement...', docLabel: 'Document :', docPlaceholder: 'Document sans titre', welcomeTitle: 'Bienvenue ! 👋', welcomeText1: 'Autotext est un outil de rédaction gratuit.', welcomeBtn1: 'Commencer →', welcomeBtn2: 'Voir comment ça marche ▶', words: 'mots', chars: 'caractères', readTime: 'min lecture', selectText: '⚠ Sélectionnez du texte d\'abord', aiWorking: 'IA améliore le texte...', aiDone: '✓ Texte amélioré', aiGood: '✓ Le texte est déjà bon', aiError: '⚠ Erreur IA', netError: '⚠ Erreur réseau', noKey: '💡 Cliquez 🔑 pour activer l\'IA', keyAdded: '✓ IA activée !', keyRemoved: '🔑 Clé supprimée', copied: '✓ Copié', cleanDone: '🧹 Format effacé', focusOn: '🎯 Mode focus activé', focusOff: '🎯 Mode focus désactivé', restored: '↩ Version restaurée', aiSuggestion: 'IA rédige un brouillon...', aiFeedback: 'IA analyse le texte...', applyDone: '✓ Texte inséré', writingPrompt: 'Que voulez-vous écrire ?', pdfTip: '📄 Désactivez "En-têtes et pieds de page"', applyBtn: '↩ Remplacer mon texte par ceci', aiDisclaimer: '⚠ L\'IA peut faire des erreurs. Lisez et vérifiez toujours le résultat.', zoomIn: 'Agrandir', zoomOut: 'Réduire', zoomReset: 'Réinitialiser le zoom', writeDraft: '✨ Écrire un brouillon', cancel: 'Annuler', writeEx: 'Ex: Je veux écrire une lettre à mon propriétaire concernant une fuite d\'eau dans la salle de bain...' },
+  bn: { aiBtn: '✨ AI', improve: '✨ পাঠ উন্নত করুন', summarize: '📋 পাঠ সারসংক্ষেপ', write: '📝 লিখতে সাহায্য করুন', learn: '🎓 লেখা শেখান', normal: 'সাধারণ পাঠ', small: 'ছোট পাঠ', large: 'বড় পাঠ', h1: 'বড় শিরোনাম', h2: 'উপশিরোনাম', h3: 'শিরোনাম 3', h4: 'শিরোনাম 4', share: '⬆ শেয়ার', email: '📧 ইমেইল পাঠান', copy: '📋 পাঠ কপি করুন', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ সংরক্ষিত', unsaved: 'সংরক্ষিত নয়', saving: 'সংরক্ষণ হচ্ছে...', docLabel: 'নথি:', docPlaceholder: 'শিরোনামহীন নথি', welcomeTitle: 'স্বাগতম! 👋', welcomeText1: 'Autotext একটি বিনামূল্যের লেখার টুল।', welcomeBtn1: 'শুরু করুন →', welcomeBtn2: 'কীভাবে কাজ করে দেখুন ▶', words: 'শব্দ', chars: 'অক্ষর', readTime: 'মিনিট', selectText: '⚠ প্রথমে পাঠ নির্বাচন করুন', aiWorking: 'AI পাঠ উন্নত করছে...', aiDone: '✓ পাঠ উন্নত হয়েছে', aiGood: '✓ পাঠ ইতিমধ্যে ভালো', aiError: '⚠ AI ত্রুটি', netError: '⚠ নেটওয়ার্ক ত্রুটি', noKey: '💡 🔑 ক্লিক করুন', keyAdded: '✓ AI সক্রিয়!', keyRemoved: '🔑 কী মুছে গেছে', copied: '✓ কপি হয়েছে', cleanDone: '🧹 ফরম্যাট পরিষ্কার', focusOn: '🎯 ফোকাস মোড চালু', focusOff: '🎯 ফোকাস মোড বন্ধ', restored: '↩ সংস্করণ পুনরুদ্ধার', aiSuggestion: 'AI খসড়া লিখছে...', aiFeedback: 'AI বিশ্লেষণ করছে...', applyDone: '✓ পাঠ সন্নিবেশ', writingPrompt: 'কী লিখতে চান?', pdfTip: '📄 "হেডার এবং ফুটার" বন্ধ করুন', applyBtn: '↩ আমার পাঠ এটি দিয়ে প্রতিস্থাপন করুন', aiDisclaimer: '⚠ AI ভুল করতে পারে। সর্বদা ফলাফল পড়ুন এবং পরীক্ষা করুন।', zoomIn: 'জুম ইন', zoomOut: 'জুম আউট', zoomReset: 'জুম রিসেট', writeDraft: '✨ খসড়া লিখুন', cancel: 'বাতিল', writeEx: 'যেমন: আমি আমার বাড়িওয়ালাকে বাথরুমে পানি লিক সম্পর্কে একটি চিঠি লিখতে চাই...' },
+  pt: { aiBtn: '✨ IA', improve: '✨ Melhorar texto', summarize: '📋 Resumir texto', write: '📝 Ajude-me a escrever', learn: '🎓 Ensine-me a escrever', normal: 'Texto normal', small: 'Texto pequeno', large: 'Texto grande', h1: 'Título grande', h2: 'Subtítulo', share: '⬆ Compartilhar', email: '📧 Enviar por email', copy: '📋 Copiar texto', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ Salvo', unsaved: 'Não salvo', saving: 'Salvando...', docLabel: 'Documento:', docPlaceholder: 'Documento sem título', welcomeTitle: 'Bem-vindo! 👋', welcomeText1: 'Autotext é uma ferramenta de escrita gratuita.', welcomeBtn1: 'Começar →', welcomeBtn2: 'Ver como funciona ▶', words: 'palavras', chars: 'caracteres', readTime: 'min leitura', selectText: '⚠ Selecione texto primeiro', aiWorking: 'IA melhorando texto...', aiDone: '✓ Texto melhorado', aiGood: '✓ Texto já está bom', aiError: '⚠ Erro de IA', netError: '⚠ Erro de rede', noKey: '💡 Clique 🔑 para ativar IA', keyAdded: '✓ IA ativada!', keyRemoved: '🔑 Chave removida', copied: '✓ Copiado', cleanDone: '🧹 Formatação limpa', focusOn: '🎯 Modo foco ativado', focusOff: '🎯 Modo foco desativado', restored: '↩ Versão restaurada', aiSuggestion: 'IA escrevendo rascunho...', aiFeedback: 'IA analisando texto...', applyDone: '✓ Texto inserido', writingPrompt: 'O que você quer escrever?', pdfTip: '📄 Desative "Cabeçalhos e rodapés"', applyBtn: '↩ Substituir meu texto por isto', aiDisclaimer: '⚠ A IA pode cometer erros. Sempre leia e verifique o resultado.', zoomIn: 'Ampliar', zoomOut: 'Reduzir', zoomReset: 'Redefinir zoom', writeDraft: '✨ Escrever rascunho', cancel: 'Cancelar', writeEx: 'Ex: Quero escrever uma carta ao meu senhorio sobre um vazamento de água no banheiro...' },
+  ru: { aiBtn: '✨ ИИ', improve: '✨ Улучшить текст', summarize: '📋 Резюмировать текст', write: '📝 Помоги написать', learn: '🎓 Научи писать', normal: 'Обычный текст', small: 'Маленький текст', large: 'Большой текст', h1: 'Заголовок', h2: 'Подзаголовок', h3: 'Заголовок 3', h4: 'Заголовок 4', share: '⬆ Поделиться', email: '📧 Отправить по email', copy: '📋 Копировать', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ Сохранено', unsaved: 'Не сохранено', saving: 'Сохранение...', docLabel: 'Документ:', docPlaceholder: 'Без названия', welcomeTitle: 'Добро пожаловать! 👋', welcomeText1: 'Autotext — бесплатный инструмент.', welcomeBtn1: 'Начать →', welcomeBtn2: 'Как это работает ▶', words: 'слов', chars: 'символов', readTime: 'мин чтения', selectText: '⚠ Сначала выделите текст', aiWorking: 'ИИ улучшает текст...', aiDone: '✓ Текст улучшен', aiGood: '✓ Текст уже хороший', aiError: '⚠ Ошибка ИИ', netError: '⚠ Ошибка сети', noKey: '💡 Нажмите 🔑 для активации', keyAdded: '✓ ИИ активирован!', keyRemoved: '🔑 Ключ удалён', copied: '✓ Скопировано', cleanDone: '🧹 Форматирование сброшено', focusOn: '🎯 Режим фокуса вкл', focusOff: '🎯 Режим фокуса выкл', restored: '↩ Версия восстановлена', aiSuggestion: 'ИИ пишет черновик...', aiFeedback: 'ИИ анализирует текст...', applyDone: '✓ Текст вставлен', writingPrompt: 'Что вы хотите написать?', pdfTip: '📄 Отключите "Колонтитулы"', applyBtn: '↩ Заменить мой текст на это', aiDisclaimer: '⚠ ИИ может ошибаться. Всегда читайте и проверяйте результат.', zoomIn: 'Увеличить', zoomOut: 'Уменьшить', zoomReset: 'Сбросить масштаб', writeDraft: '✨ Написать черновик', cancel: 'Отмена', writeEx: 'Напр: Я хочу написать письмо хозяину о протечке воды в ванной...' },
+  ur: { aiBtn: '✨ AI', improve: '✨ متن بہتر کریں', summarize: '📋 متن خلاصہ', write: '📝 لکھنے میں مدد کریں', learn: '🎓 لکھنا سکھائیں', normal: 'عام متن', small: 'چھوٹا متن', large: 'بڑا متن', h1: 'بڑی سرخی', h2: 'ذیلی سرخی', h3: 'سرخی 3', h4: 'سرخی 4', share: '⬆ شیئر کریں', email: '📧 ای میل بھیجیں', copy: '📋 کاپی کریں', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ محفوظ', unsaved: 'محفوظ نہیں', saving: 'محفوظ ہو رہا ہے...', docLabel: 'دستاویز:', docPlaceholder: 'بغیر عنوان', welcomeTitle: 'خوش آمدید! 👋', welcomeText1: 'Autotext ایک مفت آلہ ہے۔', welcomeBtn1: 'شروع کریں →', welcomeBtn2: 'دیکھیں کیسے کام کرتا ہے ▶', words: 'الفاظ', chars: 'حروف', readTime: 'منٹ', selectText: '⚠ پہلے متن منتخب کریں', aiWorking: 'AI متن بہتر کر رہا ہے...', aiDone: '✓ متن بہتر ہوا', aiGood: '✓ متن پہلے سے اچھا ہے', aiError: '⚠ AI خرابی', netError: '⚠ نیٹ ورک خرابی', noKey: '💡 🔑 دبائیں', keyAdded: '✓ AI فعال!', keyRemoved: '🔑 چابی حذف', copied: '✓ کاپی', cleanDone: '🧹 فارمیٹ صاف', focusOn: '🎯 فوکس موڈ', focusOff: '🎯 فوکس بند', restored: '↩ ورژن بحال', aiSuggestion: 'AI لکھ رہا ہے...', aiFeedback: 'AI تجزیہ کر رہا ہے...', applyDone: '✓ متن داخل', writingPrompt: 'کیا لکھنا چاہتے ہیں؟', pdfTip: '📄 "ہیڈر اور فوٹر" بند کریں', applyBtn: '↩ میرا متن اس سے بدلیں', aiDisclaimer: '⚠ AI غلطی کر سکتا ہے۔ نتیجہ ہمیشہ پڑھیں اور جانچیں۔', zoomIn: 'زوم ان', zoomOut: 'زوم آؤٹ', zoomReset: 'زوم ری سیٹ', writeDraft: '✨ مسودہ لکھیں', cancel: 'منسوخ', writeEx: 'مثال: میں اپنے مالک مکان کو باتھ روم میں پانی لیک کے بارے میں خط لکھنا چاہتا ہوں...' },
+  id: { aiBtn: '✨ AI', improve: '✨ Tingkatkan teks', summarize: '📋 Ringkas teks', write: '📝 Bantu saya menulis', learn: '🎓 Ajarkan saya menulis', normal: 'Teks normal', small: 'Teks kecil', large: 'Teks besar', h1: 'Judul besar', h2: 'Sub judul', h3: 'Judul 3', h4: 'Judul 4', share: '⬆ Bagikan', email: '📧 Kirim via email', copy: '📋 Salin teks', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ Tersimpan', unsaved: 'Belum tersimpan', saving: 'Menyimpan...', docLabel: 'Dokumen:', docPlaceholder: 'Dokumen tanpa judul', welcomeTitle: 'Selamat datang! 👋', welcomeText1: 'Autotext adalah alat menulis gratis.', welcomeBtn1: 'Mulai →', welcomeBtn2: 'Lihat cara kerjanya ▶', words: 'kata', chars: 'karakter', readTime: 'menit baca', selectText: '⚠ Pilih teks terlebih dahulu', aiWorking: 'AI sedang meningkatkan...', aiDone: '✓ Teks ditingkatkan', aiGood: '✓ Teks sudah bagus', aiError: '⚠ Error AI', netError: '⚠ Error jaringan', noKey: '💡 Klik 🔑 untuk aktifkan AI', keyAdded: '✓ AI diaktifkan!', keyRemoved: '🔑 Kunci dihapus', copied: '✓ Disalin', cleanDone: '🧹 Format dihapus', focusOn: '🎯 Mode fokus aktif', focusOff: '🎯 Mode fokus nonaktif', restored: '↩ Versi dipulihkan', aiSuggestion: 'AI menulis draf...', aiFeedback: 'AI menganalisis...', applyDone: '✓ Teks disisipkan', writingPrompt: 'Apa yang ingin ditulis?', pdfTip: '📄 Nonaktifkan "Header dan footer"', applyBtn: '↩ Ganti teks saya dengan ini', aiDisclaimer: '⚠ AI dapat membuat kesalahan. Selalu baca dan periksa hasilnya.', zoomIn: 'Perbesar', zoomOut: 'Perkecil', zoomReset: 'Reset zoom', writeDraft: '✨ Tulis draf', cancel: 'Batal', writeEx: 'Mis: Saya ingin menulis surat kepada pemilik rumah tentang kebocoran air di kamar mandi...' },
+  de: { aiBtn: '✨ KI', improve: '✨ Text verbessern', summarize: '📋 Text zusammenfassen', write: '📝 Hilf mir zu schreiben', learn: '🎓 Schreiben lernen', normal: 'Normaler Text', small: 'Kleiner Text', large: 'Großer Text', h1: 'Große Überschrift', h2: 'Zwischenüberschrift', h3: 'Überschrift 3', h4: 'Überschrift 4', share: '⬆ Teilen', email: '📧 Per Email senden', copy: '📋 Text kopieren', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ Gespeichert', unsaved: 'Nicht gespeichert', saving: 'Speichern...', docLabel: 'Dokument:', docPlaceholder: 'Unbenanntes Dokument', welcomeTitle: 'Willkommen! 👋', welcomeText1: 'Autotext ist ein kostenloses Schreibwerkzeug.', welcomeBtn1: 'Loslegen →', welcomeBtn2: 'So funktioniert es ▶', words: 'Wörter', chars: 'Zeichen', readTime: 'Min. Lesezeit', selectText: '⚠ Zuerst Text auswählen', aiWorking: 'KI verbessert Text...', aiDone: '✓ Text verbessert', aiGood: '✓ Text ist schon gut', aiError: '⚠ KI-Fehler', netError: '⚠ Netzwerkfehler', noKey: '💡 🔑 klicken für KI', keyAdded: '✓ KI aktiviert!', keyRemoved: '🔑 Schlüssel entfernt', copied: '✓ Kopiert', cleanDone: '🧹 Formatierung geleert', focusOn: '🎯 Fokusmodus an', focusOff: '🎯 Fokusmodus aus', restored: '↩ Version wiederhergestellt', aiSuggestion: 'KI schreibt Entwurf...', aiFeedback: 'KI analysiert Text...', applyDone: '✓ Text eingefügt', writingPrompt: 'Was möchten Sie schreiben?', pdfTip: '📄 Deaktivieren Sie "Kopf- und Fußzeilen"', applyBtn: '↩ Meinen Text damit ersetzen', aiDisclaimer: '⚠ KI kann Fehler machen. Lesen und überprüfen Sie das Ergebnis immer.', zoomIn: 'Vergrößern', zoomOut: 'Verkleinern', zoomReset: 'Zoom zurücksetzen', writeDraft: '✨ Entwurf schreiben', cancel: 'Abbrechen', writeEx: 'Bsp: Ich möchte einen Brief an meinen Vermieter wegen eines Wasserschadens im Bad schreiben...' },
+  ja: { aiBtn: '✨ AI', improve: '✨ テキストを改善', summarize: '📋 テキストを要約', write: '📝 書くのを助けて', learn: '🎓 書き方を教えて', normal: '普通のテキスト', small: '小さいテキスト', large: '大きいテキスト', h1: '大見出し', h2: '小見出し', h3: '見出し3', h4: '見出し4', share: '⬆ 共有', email: '📧 メールで送る', copy: '📋 テキストをコピー', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ 保存済み', unsaved: '未保存', saving: '保存中...', docLabel: 'ドキュメント：', docPlaceholder: '無題のドキュメント', welcomeTitle: 'ようこそ！👋', welcomeText1: 'Autotextは無料の文書作成ツールです。', welcomeBtn1: '始める →', welcomeBtn2: '使い方を見る ▶', words: '語', chars: '文字', readTime: '分読書', selectText: '⚠ テキストを選んでください', aiWorking: 'AIがテキストを改善中...', aiDone: '✓ テキスト改善済み', aiGood: '✓ テキストは既に良い', aiError: '⚠ AIエラー', netError: '⚠ ネットワークエラー', noKey: '💡 🔑 をクリック', keyAdded: '✓ AI有効化！', keyRemoved: '🔑 キー削除', copied: '✓ コピー済み', cleanDone: '🧹 書式削除', focusOn: '🎯 フォーカスモード', focusOff: '🎯 フォーカス解除', restored: '↩ バージョン復元', aiSuggestion: 'AI下書き作成中...', aiFeedback: 'AIが分析中...', applyDone: '✓ テキスト挿入', writingPrompt: '何を書きたいですか？', pdfTip: '📄 「ヘッダーとフッター」を無効にする', applyBtn: '↩ テキストをこれに置き換える', aiDisclaimer: '⚠ AIは間違えることがあります。結果を必ず読んで確認してください。', zoomIn: '拡大', zoomOut: '縮小', zoomReset: 'ズームリセット', writeDraft: '✨ 下書きを書く', cancel: 'キャンセル', writeEx: '例：バスルームの水漏れについて大家さんへの手紙を書きたい...' },
+  so: { aiBtn: '✨ AI', improve: '✨ Hagaaji qoraalka', summarize: '📋 Soo koobiye qoraalka', write: '📝 Ii kaa qor', learn: '🎓 I bar qorista', normal: 'Qoraal caadi', small: 'Qoraal yar', large: 'Qoraal weyn', h1: 'Cinwaan weyn', h2: 'Cinwaan dhexe', h3: 'Cinwaan 3', h4: 'Cinwaan 4', share: '⬆ Wadaag', email: '📧 U dir email', copy: '📋 Koobiye qoraalka', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ Kaydsanaa', unsaved: 'Ma kaydsana', saving: 'Kaydinta...', docLabel: 'Dukumeenti:', docPlaceholder: 'Dukumeenti aan magac lahayn', welcomeTitle: 'Soo dhawoow! 👋', welcomeText1: 'Autotext waa qalab qorista bilaash ah.', welcomeBtn1: 'Bilow →', welcomeBtn2: 'Arag sida u shaqeyso ▶', words: 'erey', chars: 'xaraf', readTime: 'daqiiqad', selectText: '⚠ Dooro qoraalka', aiWorking: 'AI hagaajinaaya...', aiDone: '✓ Qoraalka la hagaajiyay', aiGood: '✓ Qoraalku waa fiican yahay', aiError: '⚠ Khalad AI', netError: '⚠ Khalad network', noKey: '💡 Guji 🔑', keyAdded: '✓ AI la shaqeeyay!', keyRemoved: '🔑 Fure la tirtiray', copied: '✓ La koobiyeeyay', cleanDone: '🧹 Qaabka la nadiifiyay', focusOn: '🎯 Qaabka diiradda', focusOff: '🎯 Diiradda dami', restored: '↩ Nooca la soo celiyay', aiSuggestion: 'AI qoraya...', aiFeedback: 'AI falanqeynaya...', applyDone: '✓ Qoraalka la geliyay', writingPrompt: 'Maxaad rabta inaad qorto?', pdfTip: '📄 Key "Headers and footers" ', applyBtn: '↩ Beddel qoraalkaygaga kani', aiDisclaimer: '⚠ AI waxay samayn kartaa khaladaad. Xagga natiijada mar walba akhri oo hubin.', zoomIn: 'Weynee', zoomOut: 'Yareey', zoomReset: 'Dib u deji', writeDraft: '✨ Qor qorshe', cancel: 'Jooji', writeEx: 'Tusaale: Waxaan rabaa inaan warqad u qoro milkiilaha guriga oo ku saabsan dheecaanka biyo ee musqulaha...' },
+  fa: { aiBtn: '✨ هوش', improve: '✨ بهبود متن', summarize: '📋 خلاصه متن', write: '📝 کمک در نوشتن', learn: '🎓 یاد بگیر', normal: 'متن عادی', small: 'متن کوچک', large: 'متن بزرگ', h1: 'عنوان اصلی', h2: 'عنوان فرعی', h3: 'عنوان 3', h4: 'عنوان 4', share: '⬆ اشتراک', email: '📧 ارسال ایمیل', copy: '📋 کپی متن', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ ذخیره شد', unsaved: 'ذخیره نشده', saving: 'در حال ذخیره...', docLabel: 'سند:', docPlaceholder: 'سند بی‌نام', welcomeTitle: 'خوش آمدید! 👋', welcomeText1: 'Autotext یک ابزار نوشتن رایگان است.', welcomeBtn1: 'شروع کنید →', welcomeBtn2: 'ببینید چطور کار می‌کند ▶', words: 'کلمه', chars: 'حرف', readTime: 'دقیقه', selectText: '⚠ ابتدا متن را انتخاب کنید', aiWorking: 'AI در حال بهبود...', aiDone: '✓ متن بهبود یافت', aiGood: '✓ متن قبلاً خوب است', aiError: '⚠ خطای AI', netError: '⚠ خطای شبکه', noKey: '💡 🔑 را کلیک کنید', keyAdded: '✓ AI فعال شد!', keyRemoved: '🔑 کلید حذف شد', copied: '✓ کپی شد', cleanDone: '🧹 قالب پاک شد', focusOn: '🎯 حالت تمرکز', focusOff: '🎯 تمرکز خاموش', restored: '↩ نسخه بازیابی شد', aiSuggestion: 'AI در حال نوشتن...', aiFeedback: 'AI در حال تحلیل...', applyDone: '✓ متن درج شد', writingPrompt: 'چه می‌خواهید بنویسید؟', pdfTip: '📄 "سرصفحه و پاورقی" را غیرفعال کنید', applyBtn: '↩ متن من را با این جایگزین کنید', aiDisclaimer: '⚠ AI ممکن است اشتباه کند. همیشه نتیجه را بخوانید و بررسی کنید.', zoomIn: 'بزرگنمایی', zoomOut: 'کوچکنمایی', zoomReset: 'بازنشانی زوم', writeDraft: '✨ نوشتن پیش‌نویس', cancel: 'لغو', writeEx: 'مثال: می‌خواهم نامه‌ای به صاحبخانه درباره نشت آب در حمام بنویسم...' },
+  pl: { aiBtn: '✨ AI', improve: '✨ Popraw tekst', summarize: '📋 Podsumuj tekst', write: '📝 Pomóż mi pisać', learn: '🎓 Naucz mnie pisać', normal: 'Zwykły tekst', small: 'Mały tekst', large: 'Duży tekst', h1: 'Nagłówek 1', h2: 'Nagłówek 2', h3: 'Nagłówek 3', h4: 'Nagłówek 4', share: '⬆ Udostępnij', email: '📧 Wyślij emailem', copy: '📋 Kopiuj tekst', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ Zapisano', unsaved: 'Niezapisane', saving: 'Zapisywanie...', docLabel: 'Dokument:', docPlaceholder: 'Dokument bez tytułu', welcomeTitle: 'Witaj! 👋', welcomeText1: 'Autotext to darmowe narzędzie do pisania.', welcomeBtn1: 'Zaczynaj →', welcomeBtn2: 'Zobacz jak działa ▶', words: 'słów', chars: 'znaków', readTime: 'min czytania', selectText: '⚠ Najpierw zaznacz tekst', aiWorking: 'AI poprawia tekst...', aiDone: '✓ Tekst poprawiony', aiGood: '✓ Tekst już jest dobry', aiError: '⚠ Błąd AI', netError: '⚠ Błąd sieci', noKey: '💡 Kliknij 🔑 by aktywować AI', keyAdded: '✓ AI aktywowane!', keyRemoved: '🔑 Klucz usunięty', copied: '✓ Skopiowano', cleanDone: '🧹 Formatowanie wyczyszczone', focusOn: '🎯 Tryb skupienia wł.', focusOff: '🎯 Tryb skupienia wył.', restored: '↩ Wersja przywrócona', aiSuggestion: 'AI pisze szkic...', aiFeedback: 'AI analizuje tekst...', applyDone: '✓ Tekst wstawiony', writingPrompt: 'Co chcesz napisać?', pdfTip: '📄 Wyłącz "Nagłówki i stopki"', applyBtn: '↩ Zastąp mój tekst tym', aiDisclaimer: '⚠ AI może popełniać błędy. Zawsze przeczytaj i sprawdź wynik.', zoomIn: 'Przybliż', zoomOut: 'Oddal', zoomReset: 'Resetuj zoom', writeDraft: '✨ Napisz szkic', cancel: 'Anuluj', writeEx: 'Np: Chcę napisać list do właściciela o wycieku wody w łazience...' },
+  tr: { aiBtn: '✨ AI', improve: '✨ Metni geliştir', summarize: '📋 Metni özetle', write: '📝 Yazmama yardım et', learn: '🎓 Yazmayı öğret', normal: 'Normal metin', small: 'Küçük metin', large: 'Büyük metin', h1: 'Başlık 1', h2: 'Başlık 2', h3: 'Başlık 3', h4: 'Başlık 4', share: '⬆ Paylaş', email: '📧 E-posta gönder', copy: '📋 Metni kopyala', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ Kaydedildi', unsaved: 'Kaydedilmedi', saving: 'Kaydediliyor...', docLabel: 'Belge:', docPlaceholder: 'Adsız belge', welcomeTitle: 'Hoş geldiniz! 👋', welcomeText1: 'Autotext ücretsiz bir yazma aracıdır.', welcomeBtn1: 'Başla →', welcomeBtn2: 'Nasıl çalıştığını gör ▶', words: 'kelime', chars: 'karakter', readTime: 'dk okuma', selectText: '⚠ Önce metin seçin', aiWorking: 'AI metni geliştiriyor...', aiDone: '✓ Metin geliştirildi', aiGood: '✓ Metin zaten iyi', aiError: '⚠ AI hatası', netError: '⚠ Ağ hatası', noKey: '💡 AI için 🔑 tıklayın', keyAdded: '✓ AI aktif!', keyRemoved: '🔑 Anahtar silindi', copied: '✓ Kopyalandı', cleanDone: '🧹 Biçimlendirme temizlendi', focusOn: '🎯 Odak modu açık', focusOff: '🎯 Odak modu kapalı', restored: '↩ Sürüm geri yüklendi', aiSuggestion: 'AI taslak yazıyor...', aiFeedback: 'AI analiz ediyor...', applyDone: '✓ Metin eklendi', writingPrompt: 'Ne yazmak istiyorsunuz?', pdfTip: '📄 "Üstbilgi ve altbilgi"yi kapatın', applyBtn: '↩ Metnimi bununla değiştir', aiDisclaimer: '⚠ AI hata yapabilir. Sonucu her zaman okuyun ve kontrol edin.', zoomIn: 'Yakınlaştır', zoomOut: 'Uzaklaştır', zoomReset: 'Zoom sıfırla', writeDraft: '✨ Taslak yaz', cancel: 'İptal', writeEx: 'Örn: Banyodaki su sızıntısı hakkında ev sahibime mektup yazmak istiyorum...' },
+  ro: { aiBtn: '✨ AI', improve: '✨ Îmbunătățește textul', summarize: '📋 Rezumați textul', write: '📝 Ajută-mă să scriu', learn: '🎓 Învață-mă să scriu', normal: 'Text normal', small: 'Text mic', large: 'Text mare', h1: 'Titlu mare', h2: 'Subtitlu', h3: 'Titlu 3', h4: 'Titlu 4', share: '⬆ Distribuie', email: '📧 Trimite email', copy: '📋 Copiază text', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ Salvat', unsaved: 'Nesalvat', saving: 'Se salvează...', docLabel: 'Document:', docPlaceholder: 'Document fără titlu', welcomeTitle: 'Bun venit! 👋', welcomeText1: 'Autotext este un instrument de scriere gratuit.', welcomeBtn1: 'Începe →', welcomeBtn2: 'Vezi cum funcționează ▶', words: 'cuvinte', chars: 'caractere', readTime: 'min citire', selectText: '⚠ Selectează text mai întâi', aiWorking: 'AI îmbunătățește...', aiDone: '✓ Text îmbunătățit', aiGood: '✓ Textul e deja bun', aiError: '⚠ Eroare AI', netError: '⚠ Eroare rețea', noKey: '💡 Clic pe 🔑 pentru AI', keyAdded: '✓ AI activat!', keyRemoved: '🔑 Cheie ștearsă', copied: '✓ Copiat', cleanDone: '🧹 Formatare ștearsă', focusOn: '🎯 Mod focus activ', focusOff: '🎯 Mod focus inactiv', restored: '↩ Versiune restaurată', aiSuggestion: 'AI scrie ciorna...', aiFeedback: 'AI analizează...', applyDone: '✓ Text inserat', writingPrompt: 'Ce vrei să scrii?', pdfTip: '📄 Dezactivează "Antet și subsol"', applyBtn: '↩ Înlocuiește textul meu cu acesta', aiDisclaimer: '⚠ AI poate face greșeli. Citește și verifică întotdeauna rezultatul.', zoomIn: 'Mărire', zoomOut: 'Micșorare', zoomReset: 'Resetare zoom', writeDraft: '✨ Scrie ciornă', cancel: 'Anulează', writeEx: 'Ex: Vreau să scriu o scrisoare proprietarului despre o scurgere de apă în baie...' },
+  th: { aiBtn: '✨ AI', improve: '✨ ปรับปรุงข้อความ', summarize: '📋 สรุปข้อความ', write: '📝 ช่วยฉันเขียน', learn: '🎓 สอนฉันเขียน', normal: 'ข้อความปกติ', small: 'ข้อความเล็ก', large: 'ข้อความใหญ่', h1: 'หัวข้อ 1', h2: 'หัวข้อ 2', h3: 'หัวข้อ 3', h4: 'หัวข้อ 4', share: '⬆ แชร์', email: '📧 ส่งอีเมล', copy: '📋 คัดลอกข้อความ', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ บันทึกแล้ว', unsaved: 'ยังไม่บันทึก', saving: 'กำลังบันทึก...', docLabel: 'เอกสาร:', docPlaceholder: 'เอกสารไม่มีชื่อ', welcomeTitle: 'ยินดีต้อนรับ! 👋', welcomeText1: 'Autotext คือเครื่องมือเขียนฟรี', welcomeBtn1: 'เริ่มต้น →', welcomeBtn2: 'ดูวิธีใช้ ▶', words: 'คำ', chars: 'ตัวอักษร', readTime: 'นาทีอ่าน', selectText: '⚠ เลือกข้อความก่อน', aiWorking: 'AI กำลังปรับปรุง...', aiDone: '✓ ปรับปรุงแล้ว', aiGood: '✓ ข้อความดีอยู่แล้ว', aiError: '⚠ ข้อผิดพลาด AI', netError: '⚠ ข้อผิดพลาดเครือข่าย', noKey: '💡 คลิก 🔑 เพื่อเปิด AI', keyAdded: '✓ เปิด AI แล้ว!', keyRemoved: '🔑 ลบรหัสแล้ว', copied: '✓ คัดลอกแล้ว', cleanDone: '🧹 ล้างการจัดรูปแบบ', focusOn: '🎯 โหมดโฟกัสเปิด', focusOff: '🎯 โหมดโฟกัสปิด', restored: '↩ คืนค่าเวอร์ชัน', aiSuggestion: 'AI กำลังร่าง...', aiFeedback: 'AI กำลังวิเคราะห์...', applyDone: '✓ แทรกข้อความแล้ว', writingPrompt: 'คุณอยากเขียนอะไร?', pdfTip: '📄 ปิด "ส่วนหัวและส่วนท้าย"', applyBtn: '↩ แทนที่ข้อความของฉันด้วยนี้', aiDisclaimer: '⚠ AI อาจทำผิดพลาดได้ โปรดอ่านและตรวจสอบผลลัพธ์เสมอ', zoomIn: 'ซูมเข้า', zoomOut: 'ซูมออก', zoomReset: 'รีเซ็ตซูม', writeDraft: '✨ เขียนร่าง', cancel: 'ยกเลิก', writeEx: 'เช่น: ฉันต้องการเขียนจดหมายถึงเจ้าของบ้านเกี่ยวกับน้ำรั่วในห้องน้ำ...' },
+  tl: { aiBtn: '✨ AI', improve: '✨ Pagbutihin ang teksto', summarize: '📋 Ibuod ang teksto', write: '📝 Tulungan akong sumulat', learn: '🎓 Turuan akong sumulat', normal: 'Normal na teksto', small: 'Maliit na teksto', large: 'Malaking teksto', h1: 'Pamagat 1', h2: 'Pamagat 2', h3: 'Pamagat 3', h4: 'Pamagat 4', share: '⬆ Ibahagi', email: '📧 Magpadala ng email', copy: '📋 Kopyahin ang teksto', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ Naka-save', unsaved: 'Hindi naka-save', saving: 'Nagse-save...', docLabel: 'Dokumento:', docPlaceholder: 'Dokumento na walang pamagat', welcomeTitle: 'Maligayang pagdating! 👋', welcomeText1: 'Ang Autotext ay libreng kasangkapan sa pagsulat.', welcomeBtn1: 'Magsimula →', welcomeBtn2: 'Tingnan kung paano ▶', words: 'salita', chars: 'karakter', readTime: 'min pagbabasa', selectText: '⚠ Pumili ng teksto muna', aiWorking: 'Pinapabuti ng AI...', aiDone: '✓ Teksto napabuti', aiGood: '✓ Maganda na ang teksto', aiError: '⚠ Error sa AI', netError: '⚠ Error sa network', noKey: '💡 I-click ang 🔑', keyAdded: '✓ AI na-activate!', keyRemoved: '🔑 Tinanggal ang susi', copied: '✓ Nakopya', cleanDone: '🧹 Na-clear ang format', focusOn: '🎯 Focus mode on', focusOff: '🎯 Focus mode off', restored: '↩ Na-restore ang bersyon', aiSuggestion: 'Sumusulat ang AI...', aiFeedback: 'Sinusuri ng AI...', applyDone: '✓ Nai-insert ang teksto', writingPrompt: 'Ano ang gusto mong isulat?', pdfTip: '📄 I-off ang "Headers at footers"', applyBtn: '↩ Palitan ang aking teksto nito', aiDisclaimer: '⚠ Maaaring magkamali ang AI. Palaging basahin at suriin ang resulta.', zoomIn: 'Palakihin', zoomOut: 'Paliitin', zoomReset: 'I-reset ang zoom', writeDraft: '✨ Sumulat ng draft', cancel: 'Kanselahin', writeEx: 'Hal: Gusto kong sumulat ng liham sa aking panginoong-may-ari tungkol sa pagtagas ng tubig sa banyo...' },
+  vi: { aiBtn: '✨ AI', improve: '✨ Cải thiện văn bản', summarize: '📋 Tóm tắt văn bản', write: '📝 Giúp tôi viết', learn: '🎓 Dạy tôi viết', normal: 'Văn bản thường', small: 'Văn bản nhỏ', large: 'Văn bản lớn', h1: 'Tiêu đề 1', h2: 'Tiêu đề 2', h3: 'Tiêu đề 3', h4: 'Tiêu đề 4', share: '⬆ Chia sẻ', email: '📧 Gửi email', copy: '📋 Sao chép văn bản', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ Đã lưu', unsaved: 'Chưa lưu', saving: 'Đang lưu...', docLabel: 'Tài liệu:', docPlaceholder: 'Tài liệu không có tiêu đề', welcomeTitle: 'Chào mừng! 👋', welcomeText1: 'Autotext là công cụ viết miễn phí.', welcomeBtn1: 'Bắt đầu →', welcomeBtn2: 'Xem cách hoạt động ▶', words: 'từ', chars: 'ký tự', readTime: 'phút đọc', selectText: '⚠ Chọn văn bản trước', aiWorking: 'AI đang cải thiện...', aiDone: '✓ Văn bản đã cải thiện', aiGood: '✓ Văn bản đã tốt rồi', aiError: '⚠ Lỗi AI', netError: '⚠ Lỗi mạng', noKey: '💡 Nhấp 🔑 để kích hoạt AI', keyAdded: '✓ AI đã kích hoạt!', keyRemoved: '🔑 Đã xóa khóa', copied: '✓ Đã sao chép', cleanDone: '🧹 Đã xóa định dạng', focusOn: '🎯 Chế độ tập trung bật', focusOff: '🎯 Chế độ tập trung tắt', restored: '↩ Đã khôi phục phiên bản', aiSuggestion: 'AI đang soạn thảo...', aiFeedback: 'AI đang phân tích...', applyDone: '✓ Đã chèn văn bản', writingPrompt: 'Bạn muốn viết gì?', pdfTip: '📄 Tắt "Đầu trang và chân trang"', applyBtn: '↩ Thay thế văn bản của tôi bằng cái này', aiDisclaimer: '⚠ AI có thể mắc lỗi. Hãy luôn đọc và kiểm tra kết quả.', zoomIn: 'Phóng to', zoomOut: 'Thu nhỏ', zoomReset: 'Đặt lại thu phóng', writeDraft: '✨ Viết bản nháp', cancel: 'Hủy', writeEx: 'VD: Tôi muốn viết thư cho chủ nhà về rò rỉ nước trong phòng tắm...' },
+  am: { aiBtn: '✨ AI', improve: '✨ ጽሑፉን አሻሽል', summarize: '📋 ጽሑፉን ማጠቃለያ', write: '📝 እንድጽፍ ረዳኝ', learn: '🎓 መጻፍ አስተምረኝ', normal: 'መደበኛ ጽሑፍ', small: 'ትንሽ ጽሑፍ', large: 'ትልቅ ጽሑፍ', h1: 'ርዕስ 1', h2: 'ርዕስ 2', h3: 'ርዕስ 3', h4: 'ርዕስ 4', share: '⬆ አጋራ', email: '📧 በኢሜል ላክ', copy: '📋 ጽሑፍ ቅዳ', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ ተቀምጧል', unsaved: 'አልተቀመጠም', saving: 'እየቀመጠ...', docLabel: 'ሰነድ:', docPlaceholder: 'ርዕስ የሌለው ሰነድ', welcomeTitle: 'እንኳን ደህና መጡ! 👋', welcomeText1: 'Autotext ነፃ የጽሑፍ መሳሪያ ነው።', welcomeBtn1: 'ጀምር →', welcomeBtn2: 'እንዴት እንደሚሰራ ይመልከቱ ▶', words: 'ቃላት', chars: 'ፊደሎች', readTime: 'ደቂቃ', selectText: '⚠ መጀመሪያ ጽሑፍ ይምረጡ', aiWorking: 'AI እያሻሻለ...', aiDone: '✓ ጽሑፉ ተሻሽሏል', aiGood: '✓ ጽሑፉ ጥሩ ነው', aiError: '⚠ የAI ስህተት', netError: '⚠ የኔትወርክ ስህተት', noKey: '💡 🔑 ጠቅ ያድርጉ', keyAdded: '✓ AI ነቅቷል!', keyRemoved: '🔑 ቁልፍ ተሰርዟል', copied: '✓ ተቀድቷል', cleanDone: '🧹 ቅርጸት ጸድቷል', focusOn: '🎯 የትኩረት ሁነታ ነቅቷል', focusOff: '🎯 የትኩረት ሁነታ ጠፍቷል', restored: '↩ ስሪት ተመልሷል', aiSuggestion: 'AI ቅድመ ዝግጅት እየጻፈ...', aiFeedback: 'AI እየተነተነ...', applyDone: '✓ ጽሑፍ ገብቷል', writingPrompt: 'ምን መጻፍ ይፈልጋሉ?', pdfTip: '📄 "ራስጌ እና ግርጌ" ያጥፉ', applyBtn: '↩ ጽሑፌን በዚህ ተካ', aiDisclaimer: '⚠ AI ስህተት ሊሠራ ይችላል። ውጤቱን ሁልጊዜ ያንብቡ እና ያረጋግጡ።', zoomIn: 'አጉላ', zoomOut: 'አሳንስ', zoomReset: 'ዙም ዳግም አዋቅር', writeDraft: '✨ ረቂቅ ጻፍ', cancel: 'ሰርዝ', writeEx: 'ለምሳሌ፡ ስለ ሽንት ቤቱ የውሃ ሲፈስ ለቤቱ ባለቤት ደብዳቤ መጻፍ እፈልጋለሁ...' },
+  ti: { aiBtn: '✨ AI', improve: '✨ ጽሑፍ ኣመሓይሽ', summarize: '📋 ጽሑፍ ኣጠቃለሊ', write: '📝 ክጽሕፍ ሓግዘኒ', learn: '🎓 ምጽሓፍ ምሃረኒ', normal: 'ንቡር ጽሑፍ', small: 'ንኣሽቱ ጽሑፍ', large: 'ዓቢ ጽሑፍ', h1: 'ኣርእስቲ 1', h2: 'ኣርእስቲ 2', h3: 'ኣርእስቲ 3', h4: 'ኣርእስቲ 4', share: '⬆ ካፍለ', email: '📧 ብኢሜይል ስደድ', copy: '📋 ጽሑፍ ቅዳሕ', word: '⬇ Word', pdf: '⬇ PDF', saved: '✓ ተቐሚጡ', unsaved: 'ኣይተቐመጠን', saving: 'ይቕመጥ ኣሎ...', docLabel: 'ሰነድ:', docPlaceholder: 'ኣርእስቲ ዘይብሉ ሰነድ', welcomeTitle: 'እንኳዕ ብደሓን መጻእካ! 👋', welcomeText1: 'Autotext ናጻ መጽሓፍ መሳርሒ እዩ።', welcomeBtn1: 'ጀምር →', welcomeBtn2: 'ከመይ ከምዝሰርሕ ርኤ ▶', words: 'ቃላት', chars: 'ፊደላት', readTime: 'ደቒቕ', selectText: '⚠ ቅድሚ ጽሑፍ ምረጽ', aiWorking: 'AI ይኣምሕይሽ ኣሎ...', aiDone: '✓ ጽሑፍ ተኣሻሻሊ', aiGood: '✓ ጽሑፍ ጽቡቕ እዩ', aiError: '⚠ ጸገም AI', netError: '⚠ ጸገም ኔትወርክ', noKey: '💡 🔑 ጠውቕ', keyAdded: '✓ AI ነቒሑ!', keyRemoved: '🔑 መፍትሒ ተሰሪዙ', copied: '✓ ተቐዲሑ', cleanDone: '🧹 ቅርጺ ጸሪጉ', focusOn: '🎯 ሕቡእ ኩነታት ነቒሑ', focusOff: '🎯 ሕቡእ ኩነታት ጠፊኡ', restored: '↩ ሕታም ተመሊሱ', aiSuggestion: 'AI ቀዳማይ ጽሑፍ ይጽሕፍ...', aiFeedback: 'AI ይምርምር ኣሎ...', applyDone: '✓ ጽሑፍ ኣቲዩ', writingPrompt: 'እንታይ ክትጽሕፍ ትደሊ?', pdfTip: '📄 "ርዕሲ-ጽሑፍን ክፍሊ-ታሕተዋይን" ኣጥፍእ', applyBtn: '↩ ጽሑፈይ ብዚ ተካእ', aiDisclaimer: '⚠ AI ጌጽ ሊ ይምህ ኣሎ። ዋጽኦ ሁልጊዜ ኣንብብ ኣረጋግጽ።', zoomIn: 'ዓቢ ግበር', zoomOut: 'ንኣሽቱ ግበር', zoomReset: 'ዙም ኣደስ', writeDraft: '✨ ቀዳማይ ጽሑፍ ጻሕፍ', cancel: 'ሰርዝ', writeEx: 'ንኣብነት፡ ብዛዕባ ምፍሳስ ማይ ኣብ መሕጸቢ ክፍሊ ንወናኒ ገዛ ደብዳቤ ክጽሕፍ ደሊየ...' }
+};
+let currentUILang = localStorage.getItem(UI_LANG_KEY) || 'sv';
+
+// ── QUILL ──
+var Font = Quill.import('formats/font');
+Font.whitelist = ['sans', 'georgia', 'courier'];
+Quill.register(Font, true);
+
+var SizeStyle = Quill.import('attributors/style/size');
+SizeStyle.whitelist = ['8pt','9pt','10pt','11pt','12pt','14pt','16pt','18pt','20pt','24pt','28pt','32pt','36pt','48pt','60pt','72pt'];
+Quill.register(SizeStyle, true);
+
+var quill = new Quill('#editor', {
+  modules: {
+    toolbar: '#toolbar',
+    history: { delay: 500, maxStack: 100, userOnly: true }
+  },
+  theme: 'snow'
+});
+
+// ── TYPSNITT ──
+let savedFontSelection = null;
+document.getElementById('fontSelect')?.addEventListener('mousedown', () => {
+  savedFontSelection = quill.getSelection();
+});
+
+function applyFont(val) {
+  const sel = savedFontSelection || quill.getSelection();
+  if (!sel) return;
+  quill.setSelection(sel.index, sel.length, 'silent');
+  quill.format('font', val || false, 'user');
+  savedFontSelection = null;
+  setTimeout(() => {
+    const fs = document.getElementById('fontSelect');
+    if (fs) fs.value = val;
+  }, 10);
+}
+let savedSelection = null;
+quill.on('selection-change', range => { if (range) savedSelection = range; });
+
+document.getElementById('styleSelect')?.addEventListener('mousedown', () => {
+  savedSelection = quill.getSelection();
+});
+
+function applyStyle(val) {
+  const sel = savedSelection || quill.getSelection();
+  if (!sel) return;
+  const [line] = quill.getLine(sel.index);
+  const lineIndex = quill.getIndex(line);
+  const headerVal = val === 'h1' ? 1 : val === 'h2' ? 2 : val === 'h3' ? 3 : val === 'h4' ? 4 : false;
+  quill.formatLine(lineIndex, 1, 'header', headerVal, 'user');
+  setTimeout(() => { document.getElementById('styleSelect').value = val; }, 10);
+}
+const STORAGE_KEY = 'autotext_doc';
+const TITLE_KEY   = 'autotext_title';
+
+const saved = localStorage.getItem(STORAGE_KEY);
+if (saved) { try { quill.setContents(JSON.parse(saved)); } catch(e) {} }
+
+const savedTitle = localStorage.getItem(TITLE_KEY);
+if (savedTitle) {
+  document.getElementById('docTitle').value = savedTitle;
+  document.title = savedTitle + ' – Autotext';
+}
+
+function saveTitle() {
+  const val = document.getElementById('docTitle').value;
+  localStorage.setItem(TITLE_KEY, val);
+  document.title = (val || 'Namnlöst dokument') + ' – Autotext';
+}
+
+function updateWordCount() {
+  const text = quill.getText().trim();
+  const words = text.length === 0 ? 0 : text.split(/\s+/).filter(w => w.length > 0).length;
+  const chars = text.length;
+  const mins  = Math.max(1, Math.round(words / 200));
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  document.getElementById('wordCount').textContent = words + ' ' + t.words;
+  document.getElementById('charCount').textContent = chars.toLocaleString('sv-SE') + ' ' + t.chars;
+  document.getElementById('readTime').textContent  = mins + ' ' + t.readTime;
+}
+
+let saveTimer;
+const saveIndicator = document.getElementById('saveIndicator');
+quill.on('text-change', function(delta, old, source) {
+  if (source !== 'user') return;
+  updateWordCount();
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  saveIndicator.textContent = t.saving;
+  saveIndicator.className = 'save-indicator';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(quill.getContents()));
+    saveIndicator.textContent = t.saved;
+    saveIndicator.className = 'save-indicator saved';
+  }, 600);
+});
+
+updateWordCount(); // kör direkt vid start
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg, duration) {
+  const toast = document.getElementById('aiToast');
+  document.getElementById('toastMsg').textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  if (duration) toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
+}
+function hideToast() { document.getElementById('aiToast').classList.remove('show'); }
+
+// ── ONBOARDING ──
+function closeWelcome() {
+  document.getElementById('welcomeModal').classList.add('hidden');
+  localStorage.setItem('autotext_welcomed', '1');
+}
+// Stäng även vid klick på bakgrunden
+document.getElementById('welcomeModal')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('welcomeModal')) closeWelcome();
+});
+function toggleHelp() {
+  document.getElementById('helpPanel').classList.toggle('open');
+}
+// Visa välkomstrutan bara första gången
+if (!localStorage.getItem('autotext_welcomed')) {
+  document.getElementById('welcomeModal').classList.remove('hidden');
+} else {
+  document.getElementById('welcomeModal').classList.add('hidden');
+}
+
+// ── FOKUSLÄGE ──
+const FOCUS_KEY = 'autotext_focus';
+function toggleFocus() {
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  const active = document.body.classList.toggle('focus-mode');
+  document.getElementById('btnFocus').classList.toggle('focus-active', active);
+  localStorage.setItem(FOCUS_KEY, active ? '1' : '');
+  showToast(active ? t.focusOn : t.focusOff, 2500);
+}
+if (localStorage.getItem(FOCUS_KEY)) {
+  document.body.classList.add('focus-mode');
+  document.getElementById('btnFocus')?.classList.add('focus-active');
+}
+
+// Beräkna menyernas höjd dynamiskt och visa när musen är inom det området
+document.addEventListener('mousemove', e => {
+  if (!document.body.classList.contains('focus-mode')) return;
+  const topbar   = document.querySelector('.topbar');
+  const toolbar  = document.querySelector('.toolbar-wrap');
+  const menuHeight = (topbar?.offsetHeight || 52) + (document.querySelector('.titlebar')?.offsetHeight || 40) + (toolbar?.offsetHeight || 44);
+  if (e.clientY <= menuHeight) {
+    document.body.classList.add('focus-reveal');
+  } else {
+    document.body.classList.remove('focus-reveal');
+  }
+});
+
+// ── TEMA (MÖRKT/LJUST) ──
+const THEME_KEY = 'autotext_theme';
+function applyTheme(dark) {
+  document.body.classList.toggle('dark', dark);
+  document.getElementById('btnTheme').textContent = dark ? '🌙' : '☀️';
+}
+function toggleTheme() {
+  const isDark = !document.body.classList.contains('dark');
+  localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
+  applyTheme(isDark);
+}
+applyTheme(localStorage.getItem(THEME_KEY) === 'dark');
+
+function getLang() { return currentUILang; }
+
+// ── GRÄNSSNITTSSPRÅK ──
+function toggleUILang() {
+  document.getElementById('uiLangMenu').classList.toggle('hidden');
+}
+document.addEventListener('click', e => {
+  const btn = document.getElementById('uiLangBtn');
+  const menu = document.getElementById('uiLangMenu');
+  if (btn && !btn.contains(e.target) && menu && !menu.contains(e.target)) {
+    menu.classList.add('hidden');
+  }
+});
+
+function setUILang(lang) {
+  currentUILang = lang;
+  localStorage.setItem(UI_LANG_KEY, lang);
+  document.getElementById('uiLangMenu').classList.add('hidden');
+  applyUILang();
+}
+
+function applyUILang() {
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  const isRTL = ['ar', 'fa', 'ur'].includes(currentUILang);
+  document.body.setAttribute('dir', isRTL ? 'rtl' : 'ltr');
+
+  const uiLangLabel = document.getElementById('uiLangLabel');
+  if (uiLangLabel) uiLangLabel.textContent = currentUILang.toUpperCase();
+
+  // AI-knapp — uppdatera text och title
+  const btnAI = document.getElementById('btnAI');
+  if (btnAI) {
+    btnAI.textContent = t.aiBtn || '✨ AI';
+    btnAI.setAttribute('title', t.aiBtn || 'AI');
+  }
+
+  // AI-meny — de fyra funktionerna
+  const aiItems = document.querySelectorAll('#aiMenu .ai-menu-item');
+  if (aiItems[0]) aiItems[0].textContent = t.improve || '✨ Förbättra min text';
+  if (aiItems[1]) aiItems[1].textContent = t.summarize || '📋 Sammanfatta texten';
+  if (aiItems[2]) aiItems[2].textContent = t.write || '📝 Hjälp mig skriva';
+  if (aiItems[3]) aiItems[3].textContent = t.learn || '🎓 Lär mig skriva';
+
+  // Skriv-modal
+  const writeModalTitleEl = document.getElementById('writeModalTitle');
+  if (writeModalTitleEl) writeModalTitleEl.textContent = t.write || '📝 Hjälp mig skriva';
+  const writeModalDescEl = document.getElementById('writeModalDesc');
+  if (writeModalDescEl) writeModalDescEl.textContent = t.writingPrompt || 'Vad vill du skriva? Beskriv kort:';
+  const writePromptInput = document.getElementById('writePromptInput');
+  if (writePromptInput) writePromptInput.placeholder = t.writeEx || 'T.ex: Jag vill skriva ett brev...';
+  const writeSubmitBtn = document.getElementById('writeSubmitBtn');
+  if (writeSubmitBtn) writeSubmitBtn.textContent = t.writeDraft || '✨ Skriv utkast';
+  const writeCancelBtn = document.getElementById('writeCancelBtn');
+  if (writeCancelBtn) writeCancelBtn.textContent = t.cancel || 'Avbryt';
+
+  // Stil-dropdown
+  const styleSelect = document.getElementById('styleSelect');
+  if (styleSelect) {
+    styleSelect.options[0].textContent = t.normal;
+    styleSelect.options[1].textContent = t.h1 || 'Rubrik 1';
+    styleSelect.options[2].textContent = t.h2 || 'Rubrik 2';
+    styleSelect.options[3].textContent = t.h3 || 'Rubrik 3';
+    styleSelect.options[4].textContent = t.h4 || 'Rubrik 4';
+  }
+
+  // Dela-knapp — uppdatera textinnehåll och title
+  const btnShare = document.querySelector('.btn-share');
+  if (btnShare) { btnShare.textContent = t.share; btnShare.setAttribute('title', t.share); }
+  const shareItems = document.querySelectorAll('.share-menu-item');
+  if (shareItems[0]) shareItems[0].textContent = t.email;
+  if (shareItems[1]) shareItems[1].textContent = t.copy;
+
+  // Kopiera-knapp (direktknapp i header)
+  const btnCopy = document.getElementById('btnCopy');
+  if (btnCopy) { btnCopy.textContent = t.copy; btnCopy.setAttribute('title', t.copyAll || t.copy); }
+
+  // Donationsknapp — översätt text och tooltip
+  const btnDonate = document.getElementById('btnDonate');
+  if (btnDonate) {
+    const donateLabels = { sv:'☕ Donera', en:'☕ Donate', zh:'☕ 捐赠', hi:'☕ दान करें', es:'☕ Donar', ar:'☕ تبرع', fr:'☕ Faire un don', bn:'☕ দান করুন', pt:'☕ Doar', ru:'☕ Поддержать', ur:'☕ عطیہ دیں', id:'☕ Donasi', de:'☕ Spenden', ja:'☕ 寄付する', so:'☕ Deeqso', fa:'☕ کمک مالی', pl:'☕ Wesprzyj', tr:'☕ Bağış Yap', ro:'☕ Donează', th:'☕ บริจาค', tl:'☕ Mag-donate', vi:'☕ Ủng hộ', am:'☕ ለጋሱ', ti:'☕ ሕበስ' };
+    const donateTitles = { sv:'Stöd Autotext med en kopp kaffe ☕', en:'Support Autotext with a coffee ☕', zh:'用一杯咖啡支持Autotext ☕', hi:'Autotext को एक कॉफी से सहयोग करें ☕', es:'Apoya Autotext con un café ☕', ar:'ادعم Autotext بفنجان قهوة ☕', fr:'Soutenez Autotext avec un café ☕', bn:'একটি কফি দিয়ে Autotext সমর্থন করুন ☕', pt:'Apoie o Autotext com um café ☕', ru:'Поддержите Autotext чашкой кофе ☕', ur:'ایک کپ کافی سے Autotext کی مدد کریں ☕', id:'Dukung Autotext dengan secangkir kopi ☕', de:'Unterstütze Autotext mit einem Kaffee ☕', ja:'コーヒー1杯でAutotextを応援 ☕', so:'Garab u noqo Autotext ☕', fa:'با یک فنجان قهوه از Autotext حمایت کنید ☕', pl:'Wesprzyj Autotext filiżanką kawy ☕', tr:'Autotext\'i bir kahve ile destekle ☕', ro:'Susține Autotext cu o cafea ☕', th:'สนับสนุน Autotext ด้วยกาแฟ ☕', tl:'Suportahan ang Autotext ng isang kape ☕', vi:'Ủng hộ Autotext với một ly cà phê ☕', am:'Autotext ን በቡና ይደግፉ ☕', ti:'Autotext ን ብቡን ደግፍ ☕' };
+    btnDonate.innerHTML = '<span class="coffee-icon">☕</span> ' + (donateLabels[currentUILang] || donateLabels.sv).replace('☕ ', '');
+    btnDonate.setAttribute('title', donateTitles[currentUILang] || donateTitles.sv);
+  }
+
+  // Spara-indikator — uppdatera om den visar "osparad"-tillstånd
+  const saveInd = document.getElementById('saveIndicator');
+  if (saveInd) {
+    if (saveInd.classList.contains('saved')) saveInd.textContent = t.saved;
+    else saveInd.textContent = t.unsaved;
+  }
+
+  // Export — behåll pil-emoji + text
+  const exportBtns = document.querySelectorAll('.btn-export');
+  if (exportBtns[0]) exportBtns[0].textContent = t.word;
+  if (exportBtns[1]) exportBtns[1].textContent = t.pdf;
+
+  // Titlebar
+  const docLabel = document.querySelector('.doc-title-label');
+  if (docLabel) docLabel.textContent = t.docLabel;
+  const docInput = document.getElementById('docTitle');
+  if (docInput) docInput.placeholder = t.docPlaceholder;
+
+  // Välkomstruta — använd specifika ID:n för att undvika kollision med writeModal
+  const welcomeTitleEl = document.getElementById('welcomeTitle');
+  if (welcomeTitleEl) welcomeTitleEl.textContent = t.welcomeTitle;
+  const welcomeText1El = document.getElementById('welcomeText1');
+  if (welcomeText1El) welcomeText1El.textContent = t.welcomeText1;
+  const welcomeBtn1El = document.getElementById('welcomeBtn1');
+  if (welcomeBtn1El) welcomeBtn1El.textContent = t.welcomeBtn1;
+  const welcomeBtn2El = document.getElementById('welcomeBtn2');
+  if (welcomeBtn2El) welcomeBtn2El.textContent = t.welcomeBtn2;
+
+  // AI-panel: Ersätt-knapp och varningstext
+  const applyBtnEl = document.getElementById('applyBtn');
+  if (applyBtnEl) applyBtnEl.textContent = t.applyBtn || '↩ Ersätt min text med detta';
+  const aiDisclaimerEl = document.getElementById('aiDisclaimer');
+  if (aiDisclaimerEl) aiDisclaimerEl.textContent = t.aiDisclaimer || '⚠ AI kan göra fel. Läs igenom och kontrollera alltid resultatet.';
+
+  // Zoom-knappar — uppdatera title (text A+/A−/1:1 är universell)
+  const zoomIn = document.getElementById('zoomIn');
+  if (zoomIn) zoomIn.setAttribute('title', t.zoomIn || 'Zoom in');
+  const zoomOut = document.getElementById('zoomOut');
+  if (zoomOut) zoomOut.setAttribute('title', t.zoomOut || 'Zoom out');
+  const zoomReset = document.getElementById('zoomReset');
+  if (zoomReset) zoomReset.setAttribute('title', t.zoomReset || 'Reset zoom');
+
+  // Uppdatera typsnitt-dropdown via Quill's picker labels
+  const fontLabels = {
+    sv: ['Modern', 'Bok', 'Skrivmaskin'],
+    en: ['Modern', 'Serif', 'Monospace'],
+    zh: ['现代', '衬线体', '等宽'],
+    hi: ['आधुनिक', 'सेरिफ़', 'मोनो'],
+    es: ['Moderno', 'Clásica', 'Máquina'],
+    ar: ['عصري', 'كلاسيكي', 'آلة كاتبة'],
+    fr: ['Moderne', 'Classique', 'Machine'],
+    bn: ['আধুনিক', 'ক্লাসিক', 'মনো'],
+    pt: ['Moderno', 'Clássico', 'Máquina'],
+    ru: ['Современный', 'Классический', 'Печатная машинка'],
+    ur: ['جدید', 'کلاسک', 'ٹائپ رائٹر'],
+    id: ['Modern', 'Klasik', 'Mesin tik'],
+    de: ['Modern', 'Klassisch', 'Schreibmaschine'],
+    ja: ['モダン', 'クラシック', 'タイプライター'],
+    so: ['Casri', 'Dhaqameed', 'Mishiin'],
+    fa: ['مدرن', 'کلاسیک', 'ماشین‌نویس'],
+    pl: ['Nowoczesny', 'Klasyczny', 'Maszynopis'],
+    tr: ['Modern', 'Klasik', 'Daktilo'],
+    ro: ['Modern', 'Clasic', 'Mașină de scris'],
+    th: ['ทันสมัย', 'คลาสสิก', 'พิมพ์ดีด'],
+    tl: ['Moderno', 'Klasiko', 'Makinilya'],
+    vi: ['Hiện đại', 'Cổ điển', 'Máy chữ'],
+    am: ['ዘመናዊ', 'ክላሲክ', 'ማተሚያ'],
+    ti: ['ዘመናዊ', 'ክላሲካዊ', 'ማሽን']
+  };
+  const fl = fontLabels[currentUILang] || fontLabels.sv;
+  const fontSelect = document.getElementById('fontSelect');
+  if (fontSelect) {
+    fontSelect.options[0].textContent = fl[0];
+    fontSelect.options[1].textContent = fl[1];
+    fontSelect.options[2].textContent = fl[2];
+  }
+
+  // Uppdatera tooltips på alla knappar
+  const tooltips = {
+    sv: { ai: 'AI-hjälp', undo: 'Ångra (Ctrl+Z)', redo: 'Gör om (Ctrl+Y)', history: 'Versionshistorik', style: 'Välj textstil', font: 'Välj typsnitt', bold: 'Fet (Ctrl+B)', italic: 'Kursiv (Ctrl+I)', underline: 'Understruken (Ctrl+U)', strike: 'Överstruken', bullet: 'Punktlista', ordered: 'Numrerad lista', clean: 'Rensa formatering', focus: 'Fokusläge', theme: 'Byt mörkt/ljust', help: 'Hjälp', key: 'AI-nyckel', share: 'Dela', word: 'Ladda ner Word', pdf: 'Ladda ner PDF', lang: 'Byt språk', zoomIn: 'Större', zoomOut: 'Mindre', sizeIn: 'Större textstorlek', sizeOut: 'Mindre textstorlek', copyAll: 'Kopiera all text', copySelect: 'Kopiera markering (Ctrl+C)' },
+    en: { ai: 'AI help', undo: 'Undo (Ctrl+Z)', redo: 'Redo (Ctrl+Y)', history: 'Version history', style: 'Text style', font: 'Font', bold: 'Bold (Ctrl+B)', italic: 'Italic (Ctrl+I)', underline: 'Underline (Ctrl+U)', strike: 'Strikethrough', bullet: 'Bullet list', ordered: 'Numbered list', clean: 'Clear formatting', focus: 'Focus mode', theme: 'Toggle dark/light', help: 'Help', key: 'AI key', share: 'Share', word: 'Download Word', pdf: 'Download PDF', lang: 'Change language', zoomIn: 'Larger', zoomOut: 'Smaller', sizeIn: 'Increase font size', sizeOut: 'Decrease font size', copyAll: 'Copy all text', copySelect: 'Copy selection (Ctrl+C)' },
+    zh: { ai: 'AI帮助', undo: '撤销', redo: '重做', history: '版本历史', style: '文字样式', font: '字体', bold: '粗体', italic: '斜体', underline: '下划线', strike: '删除线', bullet: '无序列表', ordered: '有序列表', clean: '清除格式', focus: '专注模式', theme: '切换主题', help: '帮助', key: 'AI密钥', share: '分享', word: '下载Word', pdf: '下载PDF', lang: '切换语言', zoomIn: '放大', zoomOut: '缩小', sizeIn: '增大字号', sizeOut: '减小字号', copyAll: '复制全部文本', copySelect: '复制选中内容 (Ctrl+C)' },
+    hi: { ai: 'AI सहायता', undo: 'पूर्ववत', redo: 'फिर करें', history: 'संस्करण इतिहास', style: 'पाठ शैली', font: 'टाइपफेस', bold: 'मोटा', italic: 'तिरछा', underline: 'रेखांकित', strike: 'काटा हुआ', bullet: 'बुलेट सूची', ordered: 'क्रमांकित सूची', clean: 'स्वरूप साफ़', focus: 'फ़ोकस मोड', theme: 'थीम बदलें', help: 'सहायता', key: 'AI कुंजी', share: 'साझा करें', word: 'Word डाउनलोड', pdf: 'PDF डाउनलोड', lang: 'भाषा बदलें', zoomIn: 'बड़ा', zoomOut: 'छोटा', sizeIn: 'फ़ॉन्ट बड़ा करें', sizeOut: 'फ़ॉन्ट छोटा करें', copyAll: 'सभी पाठ कॉपी करें', copySelect: 'चयन कॉपी करें (Ctrl+C)' },
+    es: { ai: 'Ayuda IA', undo: 'Deshacer', redo: 'Rehacer', history: 'Historial', style: 'Estilo', font: 'Fuente', bold: 'Negrita', italic: 'Cursiva', underline: 'Subrayado', strike: 'Tachado', bullet: 'Lista viñetas', ordered: 'Lista numerada', clean: 'Limpiar formato', focus: 'Modo enfoque', theme: 'Cambiar tema', help: 'Ayuda', key: 'Clave AI', share: 'Compartir', word: 'Descargar Word', pdf: 'Descargar PDF', lang: 'Cambiar idioma', zoomIn: 'Más grande', zoomOut: 'Más pequeño', sizeIn: 'Aumentar tamaño', sizeOut: 'Reducir tamaño', copyAll: 'Copiar todo el texto', copySelect: 'Copiar selección (Ctrl+C)' },
+    ar: { ai: 'مساعدة AI', undo: 'تراجع', redo: 'إعادة', history: 'سجل الإصدارات', style: 'نمط النص', font: 'الخط', bold: 'غامق', italic: 'مائل', underline: 'تحته خط', strike: 'يتوسطه خط', bullet: 'قائمة نقطية', ordered: 'قائمة مرقمة', clean: 'مسح التنسيق', focus: 'وضع التركيز', theme: 'تبديل المظهر', help: 'مساعدة', key: 'مفتاح AI', share: 'مشاركة', word: 'تنزيل Word', pdf: 'تنزيل PDF', lang: 'تغيير اللغة', zoomIn: 'أكبر', zoomOut: 'أصغر', sizeIn: 'تكبير الخط', sizeOut: 'تصغير الخط', copyAll: 'نسخ كل النص', copySelect: 'نسخ التحديد (Ctrl+C)' },
+    fr: { ai: 'Aide IA', undo: 'Annuler', redo: 'Rétablir', history: 'Historique', style: 'Style', font: 'Police', bold: 'Gras', italic: 'Italique', underline: 'Souligné', strike: 'Barré', bullet: 'Liste à puces', ordered: 'Liste numérotée', clean: 'Effacer format', focus: 'Mode focus', theme: 'Changer thème', help: 'Aide', key: 'Clé AI', share: 'Partager', word: 'Télécharger Word', pdf: 'Télécharger PDF', lang: 'Changer langue', zoomIn: 'Plus grand', zoomOut: 'Plus petit', sizeIn: 'Agrandir la police', sizeOut: 'Réduire la police', copyAll: 'Copier tout le texte', copySelect: 'Copier la sélection (Ctrl+C)' },
+    bn: { ai: 'AI সাহায্য', undo: 'পূর্বাবস্থা', redo: 'পুনরায়', history: 'ইতিহাস', style: 'শৈলী', font: 'ফন্ট', bold: 'গাঢ়', italic: 'তির্যক', underline: 'আন্ডারলাইন', strike: 'স্ট্রাইক', bullet: 'বুলেট তালিকা', ordered: 'সংখ্যা তালিকা', clean: 'ফরম্যাট মুছুন', focus: 'ফোকাস মোড', theme: 'থিম পরিবর্তন', help: 'সাহায্য', key: 'AI চাবি', share: 'শেয়ার', word: 'Word ডাউনলোড', pdf: 'PDF ডাউনলোড', lang: 'ভাষা পরিবর্তন', zoomIn: 'বড়', zoomOut: 'ছোট', sizeIn: 'ফন্ট বড় করুন', sizeOut: 'ফন্ট ছোট করুন', copyAll: 'সব পাঠ কপি করুন', copySelect: 'নির্বাচন কপি করুন (Ctrl+C)' },
+    pt: { ai: 'Ajuda IA', undo: 'Desfazer', redo: 'Refazer', history: 'Histórico', style: 'Estilo', font: 'Fonte', bold: 'Negrito', italic: 'Itálico', underline: 'Sublinhado', strike: 'Tachado', bullet: 'Lista com marcadores', ordered: 'Lista numerada', clean: 'Limpar formato', focus: 'Modo foco', theme: 'Alternar tema', help: 'Ajuda', key: 'Chave AI', share: 'Compartilhar', word: 'Baixar Word', pdf: 'Baixar PDF', lang: 'Mudar idioma', zoomIn: 'Maior', zoomOut: 'Menor', sizeIn: 'Aumentar fonte', sizeOut: 'Reduzir fonte', copyAll: 'Copiar todo o texto', copySelect: 'Copiar seleção (Ctrl+C)' },
+    ru: { ai: 'Помощь ИИ', undo: 'Отменить', redo: 'Повторить', history: 'История', style: 'Стиль', font: 'Шрифт', bold: 'Жирный', italic: 'Курсив', underline: 'Подчёркнутый', strike: 'Зачёркнутый', bullet: 'Маркированный список', ordered: 'Нумерованный список', clean: 'Убрать форматирование', focus: 'Режим фокуса', theme: 'Сменить тему', help: 'Помощь', key: 'Ключ ИИ', share: 'Поделиться', word: 'Скачать Word', pdf: 'Скачать PDF', lang: 'Сменить язык', zoomIn: 'Крупнее', zoomOut: 'Мельче', sizeIn: 'Увеличить шрифт', sizeOut: 'Уменьшить шрифт', copyAll: 'Копировать весь текст', copySelect: 'Копировать выделенное (Ctrl+C)' },
+    ur: { ai: 'AI مدد', undo: 'واپس', redo: 'دوبارہ', history: 'تاریخ', style: 'انداز', font: 'فونٹ', bold: 'موٹا', italic: 'ترچھا', underline: 'خط کشی', strike: 'کاٹا', bullet: 'فہرست', ordered: 'گنتی', clean: 'فارمیٹ صاف', focus: 'فوکس', theme: 'تھیم', help: 'مدد', key: 'AI چابی', share: 'شیئر', word: 'Word ڈاؤنلوڈ', pdf: 'PDF ڈاؤنلوڈ', lang: 'زبان', zoomIn: 'بڑا', zoomOut: 'چھوٹا', sizeIn: 'فونٹ بڑا کریں', sizeOut: 'فونٹ چھوٹا کریں', copyAll: 'تمام متن کاپی کریں', copySelect: 'انتخاب کاپی کریں (Ctrl+C)' },
+    id: { ai: 'Bantuan AI', undo: 'Batalkan', redo: 'Ulangi', history: 'Riwayat', style: 'Gaya', font: 'Font', bold: 'Tebal', italic: 'Miring', underline: 'Garis bawah', strike: 'Coret', bullet: 'Daftar poin', ordered: 'Daftar bernomor', clean: 'Hapus format', focus: 'Mode fokus', theme: 'Ganti tema', help: 'Bantuan', key: 'Kunci AI', share: 'Bagikan', word: 'Unduh Word', pdf: 'Unduh PDF', lang: 'Ganti bahasa', zoomIn: 'Lebih besar', zoomOut: 'Lebih kecil', sizeIn: 'Perbesar font', sizeOut: 'Perkecil font', copyAll: 'Salin semua teks', copySelect: 'Salin seleksi (Ctrl+C)' },
+    de: { ai: 'KI-Hilfe', undo: 'Rückgängig', redo: 'Wiederholen', history: 'Versionsverlauf', style: 'Textstil', font: 'Schriftart', bold: 'Fett', italic: 'Kursiv', underline: 'Unterstrichen', strike: 'Durchgestrichen', bullet: 'Aufzählungsliste', ordered: 'Nummerierte Liste', clean: 'Format löschen', focus: 'Fokusmodus', theme: 'Design wechseln', help: 'Hilfe', key: 'KI-Schlüssel', share: 'Teilen', word: 'Word herunterladen', pdf: 'PDF herunterladen', lang: 'Sprache ändern', zoomIn: 'Größer', zoomOut: 'Kleiner', sizeIn: 'Schrift vergrößern', sizeOut: 'Schrift verkleinern', copyAll: 'Gesamten Text kopieren', copySelect: 'Auswahl kopieren (Ctrl+C)' },
+    ja: { ai: 'AIヘルプ', undo: '元に戻す', redo: 'やり直す', history: '履歴', style: 'スタイル', font: 'フォント', bold: '太字', italic: '斜体', underline: '下線', strike: '取り消し線', bullet: '箇条書き', ordered: '番号リスト', clean: '書式削除', focus: 'フォーカス', theme: 'テーマ切替', help: 'ヘルプ', key: 'AIキー', share: '共有', word: 'Word保存', pdf: 'PDF保存', lang: '言語変更', zoomIn: '拡大', zoomOut: '縮小', sizeIn: 'フォントを大きく', sizeOut: 'フォントを小さく', copyAll: 'テキストをすべてコピー', copySelect: '選択をコピー (Ctrl+C)' },
+    so: { ai: 'Caawimaada AI', undo: 'Noqo', redo: 'Samee', history: 'Taariikhda', style: 'Qaabka', font: 'Xarfta', bold: 'Weyn', italic: 'Leh gooyn', underline: 'Xariiq hoose', strike: 'La tirtiray', bullet: 'Liiska', ordered: 'Liiska tirooyinka', clean: 'Nadiifi', focus: 'Diiradda', theme: 'Midabka', help: 'Caawimaad', key: 'Fure AI', share: 'Wadaag', word: 'Word soo dejiso', pdf: 'PDF soo dejiso', lang: 'Luuqadda', zoomIn: 'Weynee', zoomOut: 'Yareey', sizeIn: 'Weynee xarfta', sizeOut: 'Yareey xarfta', copyAll: 'Koobiye dhammaan qoraalka', copySelect: 'Koobiye xulashada (Ctrl+C)' },
+    fa: { ai: 'کمک AI', undo: 'برگشت', redo: 'تکرار', history: 'تاریخچه', style: 'سبک', font: 'فونت', bold: 'ضخیم', italic: 'کج', underline: 'زیرخط', strike: 'خط‌خورده', bullet: 'فهرست نقطه', ordered: 'فهرست عددی', clean: 'پاک قالب', focus: 'تمرکز', theme: 'تم', help: 'راهنما', key: 'کلید AI', share: 'اشتراک', word: 'Word دانلود', pdf: 'PDF دانلود', lang: 'زبان', zoomIn: 'بزرگتر', zoomOut: 'کوچکتر', sizeIn: 'بزرگتر کردن فونت', sizeOut: 'کوچکتر کردن فونت', copyAll: 'کپی همه متن', copySelect: 'کپی انتخاب (Ctrl+C)' },
+    pl: { ai: 'Pomoc AI', undo: 'Cofnij (Ctrl+Z)', redo: 'Ponów (Ctrl+Y)', history: 'Historia wersji', style: 'Styl tekstu', font: 'Czcionka', bold: 'Pogrubienie (Ctrl+B)', italic: 'Kursywa (Ctrl+I)', underline: 'Podkreślenie (Ctrl+U)', strike: 'Przekreślenie', bullet: 'Lista punktowana', ordered: 'Lista numerowana', clean: 'Wyczyść formatowanie', focus: 'Tryb skupienia', theme: 'Zmień motyw', help: 'Pomoc', key: 'Klucz AI', share: 'Udostępnij', word: 'Pobierz Word', pdf: 'Pobierz PDF', lang: 'Zmień język', zoomIn: 'Większy', zoomOut: 'Mniejszy', sizeIn: 'Zwiększ czcionkę', sizeOut: 'Zmniejsz czcionkę', copyAll: 'Kopiuj cały tekst', copySelect: 'Kopiuj zaznaczenie (Ctrl+C)' },
+    tr: { ai: 'AI yardımı', undo: 'Geri al (Ctrl+Z)', redo: 'Yinele (Ctrl+Y)', history: 'Sürüm geçmişi', style: 'Metin stili', font: 'Yazı tipi', bold: 'Kalın (Ctrl+B)', italic: 'İtalik (Ctrl+I)', underline: 'Altı çizili (Ctrl+U)', strike: 'Üstü çizili', bullet: 'Madde listesi', ordered: 'Numaralı liste', clean: 'Biçimi temizle', focus: 'Odak modu', theme: 'Temayı değiştir', help: 'Yardım', key: 'AI anahtarı', share: 'Paylaş', word: 'Word indir', pdf: 'PDF indir', lang: 'Dili değiştir', zoomIn: 'Büyüt', zoomOut: 'Küçült', sizeIn: 'Yazı boyutunu artır', sizeOut: 'Yazı boyutunu azalt', copyAll: 'Tüm metni kopyala', copySelect: 'Seçimi kopyala (Ctrl+C)' },
+    ro: { ai: 'Ajutor AI', undo: 'Anulează (Ctrl+Z)', redo: 'Refă (Ctrl+Y)', history: 'Istoric versiuni', style: 'Stil text', font: 'Font', bold: 'Aldin (Ctrl+B)', italic: 'Cursiv (Ctrl+I)', underline: 'Subliniat (Ctrl+U)', strike: 'Tăiat', bullet: 'Listă cu puncte', ordered: 'Listă numerotată', clean: 'Șterge formatare', focus: 'Mod focus', theme: 'Schimbă tema', help: 'Ajutor', key: 'Cheie AI', share: 'Distribuie', word: 'Descarcă Word', pdf: 'Descarcă PDF', lang: 'Schimbă limba', zoomIn: 'Mai mare', zoomOut: 'Mai mic', sizeIn: 'Mărește fontul', sizeOut: 'Micșorează fontul', copyAll: 'Copiază tot textul', copySelect: 'Copiază selecția (Ctrl+C)' },
+    th: { ai: 'ช่วยเหลือ AI', undo: 'เลิกทำ (Ctrl+Z)', redo: 'ทำซ้ำ (Ctrl+Y)', history: 'ประวัติเวอร์ชัน', style: 'สไตล์ข้อความ', font: 'แบบอักษร', bold: 'ตัวหนา (Ctrl+B)', italic: 'ตัวเอียง (Ctrl+I)', underline: 'ขีดเส้นใต้ (Ctrl+U)', strike: 'ขีดฆ่า', bullet: 'รายการสัญลักษณ์', ordered: 'รายการลำดับ', clean: 'ล้างการจัดรูปแบบ', focus: 'โหมดโฟกัส', theme: 'เปลี่ยนธีม', help: 'ช่วยเหลือ', key: 'คีย์ AI', share: 'แชร์', word: 'ดาวน์โหลด Word', pdf: 'ดาวน์โหลด PDF', lang: 'เปลี่ยนภาษา', zoomIn: 'ขยาย', zoomOut: 'ย่อ', sizeIn: 'เพิ่มขนาดตัวอักษร', sizeOut: 'ลดขนาดตัวอักษร', copyAll: 'คัดลอกข้อความทั้งหมด', copySelect: 'คัดลอกที่เลือก (Ctrl+C)' },
+    tl: { ai: 'Tulong ng AI', undo: 'I-undo (Ctrl+Z)', redo: 'I-redo (Ctrl+Y)', history: 'Kasaysayan ng bersyon', style: 'Estilo ng teksto', font: 'Font', bold: 'Naka-bold (Ctrl+B)', italic: 'Italiko (Ctrl+I)', underline: 'May salungguhit (Ctrl+U)', strike: 'May tuldok', bullet: 'Listahan ng bala', ordered: 'Numerong listahan', clean: 'Linisin ang format', focus: 'Focus mode', theme: 'Palitan ang tema', help: 'Tulong', key: 'Susi ng AI', share: 'Ibahagi', word: 'I-download ang Word', pdf: 'I-download ang PDF', lang: 'Palitan ang wika', zoomIn: 'Palakihin', zoomOut: 'Paliitin', sizeIn: 'Palakihin ang font', sizeOut: 'Paliitin ang font', copyAll: 'Kopyahin lahat ng teksto', copySelect: 'Kopyahin ang napili (Ctrl+C)' },
+    vi: { ai: 'Trợ giúp AI', undo: 'Hoàn tác (Ctrl+Z)', redo: 'Làm lại (Ctrl+Y)', history: 'Lịch sử phiên bản', style: 'Kiểu chữ', font: 'Phông chữ', bold: 'In đậm (Ctrl+B)', italic: 'In nghiêng (Ctrl+I)', underline: 'Gạch chân (Ctrl+U)', strike: 'Gạch ngang', bullet: 'Danh sách dấu đầu dòng', ordered: 'Danh sách đánh số', clean: 'Xóa định dạng', focus: 'Chế độ tập trung', theme: 'Đổi giao diện', help: 'Trợ giúp', key: 'Khóa AI', share: 'Chia sẻ', word: 'Tải Word', pdf: 'Tải PDF', lang: 'Đổi ngôn ngữ', zoomIn: 'Phóng to', zoomOut: 'Thu nhỏ', sizeIn: 'Tăng cỡ chữ', sizeOut: 'Giảm cỡ chữ', copyAll: 'Sao chép toàn bộ văn bản', copySelect: 'Sao chép lựa chọn (Ctrl+C)' },
+    am: { ai: 'የAI እርዳታ', undo: 'ቀለበስ (Ctrl+Z)', redo: 'እንደገና (Ctrl+Y)', history: 'የስሪት ታሪክ', style: 'የጽሑፍ ዘይቤ', font: 'ፊደል', bold: 'ወፍራም (Ctrl+B)', italic: 'ያዘነበለ (Ctrl+I)', underline: 'ከስር መስመር (Ctrl+U)', strike: 'ተሰርዟል', bullet: 'የነጥብ ዝርዝር', ordered: 'ቁጥር ዝርዝር', clean: 'ቅርጸት አጽዳ', focus: 'የትኩረት ሁነታ', theme: 'ገጽታ ቀይር', help: 'እርዳታ', key: 'AI ቁልፍ', share: 'አጋራ', word: 'Word አውርድ', pdf: 'PDF አውርድ', lang: 'ቋንቋ ቀይር', zoomIn: 'አሳድግ', zoomOut: 'አሳንስ', sizeIn: 'ፊደል አሳድግ', sizeOut: 'ፊደል አሳንስ', copyAll: 'ሁሉንም ጽሑፍ ቅዳ', copySelect: 'ምርጫ ቅዳ (Ctrl+C)' },
+    ti: { ai: 'ሓገዝ AI', undo: 'ምለስ (Ctrl+Z)', redo: 'ደግም (Ctrl+Y)', history: 'ታሪኽ ሕታም', style: 'ናይ ጽሑፍ ዓይነት', font: 'ፊደል', bold: 'ዓቢ (Ctrl+B)', italic: 'ዝዘንበለ (Ctrl+I)', underline: 'ኣስመር (Ctrl+U)', strike: 'ተሰሪዙ', bullet: 'ዝርዝር', ordered: 'ቁጽሪ ዝርዝር', clean: 'ቅርጺ ጸርግ', focus: 'ሕቡእ ሁናቴ', theme: 'ቀለም ቀይር', help: 'ሓገዝ', key: 'AI መፍትሒ', share: 'ካፍለ', word: 'Word ውረድ', pdf: 'PDF ውረድ', lang: 'ቋንቋ ቀይር', zoomIn: 'ኣዓቢ', zoomOut: 'ኣንኣሽ', sizeIn: 'ፊደል ኣዓቢ', sizeOut: 'ፊደል ኣንኣሽ', copyAll: 'ኩሉ ጽሑፍ ቅዳሕ', copySelect: 'ምርጫ ቅዳሕ (Ctrl+C)' }
+  };;
+  const tt = tooltips[currentUILang] || tooltips.sv;
+
+  document.getElementById('btnAI')?.setAttribute('title', tt.ai);
+  document.querySelector('[onclick="quill.history.undo()"]')?.setAttribute('title', tt.undo);
+  document.querySelector('[onclick="quill.history.redo()"]')?.setAttribute('title', tt.redo);
+  document.getElementById('historyBtn')?.setAttribute('title', tt.history);
+  document.getElementById('styleSelect')?.setAttribute('title', tt.style);
+  document.getElementById('fontSelect')?.setAttribute('title', tt.font);
+  document.getElementById('btnFocus')?.setAttribute('title', tt.focus);
+  document.getElementById('btnTheme')?.setAttribute('title', tt.theme);
+  document.querySelector('.btn-help')?.setAttribute('title', tt.help);
+  document.getElementById('btnKey')?.setAttribute('title', tt.key);
+  document.querySelector('.btn-share')?.setAttribute('title', tt.share);
+  document.querySelectorAll('.btn-export')[0]?.setAttribute('title', tt.word);
+  document.querySelectorAll('.btn-export')[1]?.setAttribute('title', tt.pdf);
+  document.getElementById('uiLangBtn')?.setAttribute('title', tt.lang);
+  document.querySelectorAll('.zoom-circle')[0]?.setAttribute('title', tt.zoomIn);
+  document.querySelectorAll('.zoom-circle')[1]?.setAttribute('title', tt.zoomOut);
+  document.getElementById('btnSizePlus')?.setAttribute('title', tt.sizeIn || 'Increase font size');
+  document.getElementById('btnSizeMinus')?.setAttribute('title', tt.sizeOut || 'Decrease font size');
+  document.querySelector('.btn-clean')?.setAttribute('title', tt.clean);
+  document.querySelectorAll('.btn-clean')[1]?.setAttribute('title', tt.copySelect || 'Copy selection (Ctrl+C)');
+
+  // Quill's inbyggda knappar
+  setTimeout(() => {
+    document.querySelector('.ql-bold')?.setAttribute('title', tt.bold);
+    document.querySelector('.ql-italic')?.setAttribute('title', tt.italic);
+    document.querySelector('.ql-underline')?.setAttribute('title', tt.underline);
+    document.querySelector('.ql-strike')?.setAttribute('title', tt.strike);
+    document.querySelector('.ql-list[value="bullet"]')?.setAttribute('title', tt.bullet);
+    document.querySelector('.ql-list[value="ordered"]')?.setAttribute('title', tt.ordered);
+  }, 100);
+
+  // Uppdatera ordräknare
+  updateWordCount();
+}
+
+// ── GROQ AI ──
+const GROQ_KEY_STORAGE = 'autotext_groq_key';
+function getGroqKey() { return localStorage.getItem(GROQ_KEY_STORAGE); }
+
+let pendingWriteSuggestion = '';
+let pendingSummaryIndex = -1;
+let pendingSummaryLength = -1;
+
+function updateAIButton() {
+  const btn = document.getElementById('btnAI');
+  const keyBtn = document.getElementById('btnKey');
+  if (!btn || !keyBtn) return;
+  if (getGroqKey()) {
+    btn.classList.remove('no-key');
+    keyBtn.classList.add('has-key');
+  } else {
+    btn.classList.add('no-key');
+    keyBtn.classList.remove('has-key');
+  }
+}
+updateAIButton();
+
+function setGroqKey() {
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  const existing = getGroqKey();
+  const key = prompt(existing ? t.keyRemoved + ':' : t.noKey, existing || '');
+  if (key === null) return;
+  if (key.trim() === '') {
+    localStorage.removeItem(GROQ_KEY_STORAGE);
+    showToast(t.keyRemoved, 2000);
+  } else {
+    localStorage.setItem(GROQ_KEY_STORAGE, key.trim());
+    showToast(t.keyAdded, 2000);
+  }
+  updateAIButton();
+}
+
+updateAIButton();
+
+function toggleAIMenu() {
+  if (!getGroqKey()) {
+    const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+    showToast(t.noKey, 4000);
+    return;
+  }
+  const menu = document.getElementById('aiMenu');
+  const btn  = document.getElementById('btnAI');
+  if (!menu.classList.contains('open')) {
+    const r = btn.getBoundingClientRect();
+    menu.style.top  = (r.bottom + 6) + 'px';
+    menu.style.left = r.left + 'px';
+  }
+  menu.classList.toggle('open');
+}
+
+// Stäng menyn om man klickar utanför
+document.addEventListener('click', e => {
+  if (!document.getElementById('aiMenuWrap').contains(e.target)) {
+    document.getElementById('aiMenu').classList.remove('open');
+  }
+});
+
+function showAIPanel(title, content, showApply) {
+  document.getElementById('aiPanelTitle').textContent = title;
+  document.getElementById('aiPanelBody').textContent = content;
+  document.getElementById('aiPanelFooter').style.display = showApply ? 'block' : 'none';
+  document.getElementById('aiPanel').style.display = 'flex';
+}
+
+function closeAIPanel() {
+  document.getElementById('aiPanel').style.display = 'none';
+  pendingWriteSuggestion = '';
+  pendingSummaryIndex = -1;
+  pendingSummaryLength = -1;
+}
+
+function applyAISuggestion() {
+  if (!pendingWriteSuggestion) return;
+  let index, length;
+  if (pendingSummaryIndex >= 0) {
+    index = pendingSummaryIndex;
+    length = pendingSummaryLength;
+  } else {
+    const sel = quill.getSelection();
+    index  = sel && sel.length > 0 ? sel.index : 0;
+    length = sel && sel.length > 0 ? sel.length : quill.getLength() - 1;
+  }
+  quill.deleteText(index, length, 'user');
+  quill.insertText(index, pendingWriteSuggestion, 'user');
+  closeAIPanel();
+  showToast('✓ Text infogad', 2000);
+}
+
+async function callGroq(systemPrompt, userContent) {
+  const key = getGroqKey();
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.3,
+      max_tokens: 2000,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userContent }
+      ]
+    })
+  });
+  const data = await response.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.choices?.[0]?.message?.content?.trim();
+}
+
+async function runAI(mode) {
+  document.getElementById('aiMenu').classList.remove('open');
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  const sel = quill.getSelection();
+  const hasSelection = sel && sel.length > 0;
+  const index  = hasSelection ? sel.index : 0;
+  const length = hasSelection ? sel.length : quill.getLength() - 1;
+  const text   = quill.getText(index, length).trim();
+
+  if (mode === 'improve') {
+    if (text.length < 3) { showToast(t.selectText, 2000); return; }
+    showToast(t.aiWorking);
+    try {
+      // Spara block-format per rad (rubriker, listor etc.) från originaldelta
+      const originalDelta = quill.getContents(index, length);
+      const lineFormats = [];
+      let curLineAttrs = {};
+      for (const op of originalDelta.ops) {
+        if (typeof op.insert === 'string') {
+          for (const ch of op.insert) {
+            if (ch === '\n') {
+              lineFormats.push(op.attributes ? { ...op.attributes } : {});
+              curLineAttrs = {};
+            }
+          }
+        }
+      }
+
+      const result = await callGroq(
+        'Du är en skicklig språkredaktör. Identifiera automatiskt vilket språk texten är skriven på och förbättra den på SAMMA språk. Rätta stavfel, grammatik och förbättra meningsbyggnad och stil. Bevara textens ursprungliga ton och innebörd. Svara ENBART med den förbättrade texten, inga kommentarer.',
+        text
+      );
+      hideToast();
+      if (result && result !== text) {
+        // Ta bort originaltexten
+        quill.deleteText(index, length, 'user');
+        // Sätt in ny text rad för rad med bevarade block-format
+        const newLines = result.split('\n');
+        let pos = index;
+        for (let i = 0; i < newLines.length; i++) {
+          if (newLines[i].length > 0) {
+            quill.insertText(pos, newLines[i], 'user');
+            pos += newLines[i].length;
+          }
+          if (i < newLines.length - 1) {
+            const fmt = lineFormats[i] || {};
+            if (Object.keys(fmt).length > 0) {
+              quill.insertText(pos, '\n', fmt, 'user');
+            } else {
+              quill.insertText(pos, '\n', 'user');
+            }
+            pos += 1;
+          }
+        }
+        showToast(t.aiDone, 2000);
+      } else {
+        showToast(t.aiGood, 2000);
+      }
+    } catch(e) { hideToast(); showToast('⚠ ' + e.message, 3000); }
+
+  } else if (mode === 'summarize') {
+    if (text.length < 10) { showToast(t.selectText, 2000); return; }
+    const langMap = { sv: 'Swedish', en: 'English', de: 'German', fr: 'French', es: 'Spanish', ar: 'Arabic', fa: 'Dari/Persian', hi: 'Hindi', bn: 'Bengali', id: 'Indonesian', zh: 'Chinese', ja: 'Japanese', ru: 'Russian', pt: 'Portuguese', ur: 'Urdu', tl: 'Filipino', am: 'Amharic' };
+    const langName = langMap[currentUILang] || 'English';
+    const savedIndex = index;
+    const savedLength = length;
+    showToast(t.aiSummarizing || 'AI sammanfattar...');
+    try {
+      const result = await callGroq(
+        `You are a skilled editor. Detect the language of the text and write the summary in that SAME language. Be concise and include the most important points. Respond ONLY with the summary, no comments.`,
+        text
+      );
+      hideToast();
+      if (result) {
+        pendingWriteSuggestion = result;
+        pendingSummaryIndex = savedIndex;
+        pendingSummaryLength = savedLength;
+        showAIPanel('📋', result, true);
+      }
+    } catch(e) { hideToast(); showToast('⚠ ' + e.message, 3000); }
+
+  } else if (mode === 'write') {
+    openWriteModal();
+    return;
+
+  } else if (mode === 'learn') {
+    if (text.length < 10) { showToast(t.selectText, 2000); return; }
+    const langMap = { sv: 'Swedish', en: 'English', de: 'German', fr: 'French', es: 'Spanish', ar: 'Arabic', fa: 'Dari/Persian', hi: 'Hindi', bn: 'Bengali', id: 'Indonesian', zh: 'Chinese', ja: 'Japanese', ru: 'Russian', pt: 'Portuguese', ur: 'Urdu', tl: 'Filipino', am: 'Amharic' };
+    const langName = langMap[currentUILang] || 'English';
+    showToast(t.aiFeedback);
+    try {
+      const result = await callGroq(
+        `You are a patient and encouraging language teacher. Detect the language of the text and write your feedback in that SAME language. Give feedback: 1) What is good? 2) What could be better? (max 3 concrete things) 3) One tip for next time. Be brief, friendly and pedagogical. Do not rewrite the text.`,
+        text
+      );
+      hideToast();
+      if (result) showAIPanel('🎓', result, false);
+    } catch(e) { hideToast(); showToast('⚠ ' + e.message, 3000); }
+  }
+}
+
+// Bakåtkompatibilitet
+function runAIManual() { runAI('improve'); }
+
+// ── RENSA FORMATERING ──
+function cleanFormatting() {
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  const sel = quill.getSelection();
+  if (sel && sel.length > 0) {
+    quill.removeFormat(sel.index, sel.length);
+    showToast(t.cleanDone, 1800);
+  } else {
+    showToast('⚠ ' + (t.selectText || 'Markera text du vill rensa'), 2500);
+  }
+}
+
+// ── DELA ──
+function toggleShareMenu() {
+  document.getElementById('shareMenu').classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  if (!document.getElementById('shareWrap').contains(e.target)) {
+    document.getElementById('shareMenu').classList.remove('open');
+  }
+});
+
+function shareEmail() {
+  document.getElementById('shareMenu').classList.remove('open');
+  const title = document.getElementById('docTitle').value.trim() || 'Mitt dokument';
+  const text  = quill.getText().trim();
+  const subject = encodeURIComponent(title);
+  const body    = encodeURIComponent(text);
+  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  showToast(t.email, 2000);
+}
+
+function copyText() {
+  document.getElementById('shareMenu').classList.remove('open');
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  const text = quill.getText().trim();
+  navigator.clipboard.writeText(text).then(() => {
+    showToast(t.copied, 2500);
+  }).catch(() => {
+    showToast('⚠', 3000);
+  });
+}
+
+function copyTextDirect() {
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  const btn = document.getElementById('btnCopy');
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  const domRange = document.createRange();
+  domRange.selectNodeContents(quill.root);
+  sel.addRange(domRange);
+  let success = false;
+  try { success = document.execCommand('copy'); } catch(e) {}
+  sel.removeAllRanges();
+  if (!success) {
+    navigator.clipboard.writeText(quill.getText().trim()).then(() => {});
+  }
+  showToast(t.copied, 2500);
+  btn.classList.add('copied');
+  btn.textContent = '✓ Kopierad';
+  setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '📋 Kopiera'; }, 2000);
+}
+
+function copySelection() {
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  const range = savedSelection || quill.getSelection();
+  if (!range || range.length === 0) {
+    showToast('📋 Markera text först', 2000);
+    return;
+  }
+  // Återställ markeringen i Quill och kopiera via execCommand
+  quill.setSelection(range.index, range.length, 'silent');
+  quill.focus();
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0) {
+    let success = false;
+    try { success = document.execCommand('copy'); } catch(e) {}
+    if (success) {
+      showToast(t.copied || '📋 Kopierad!', 2000);
+      return;
+    }
+  }
+  // Fallback: ren text
+  navigator.clipboard.writeText(quill.getText(range.index, range.length)).then(() => {
+    showToast(t.copied || '📋 Kopierad!', 2000);
+  });
+}
+
+function pasteSelection() {
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  navigator.clipboard.readText().then(text => {
+    const range = quill.getSelection(true);
+    quill.insertText(range.index, text, 'user');
+    showToast('📋 Inklistrat', 1500);
+  }).catch(() => {
+    showToast('⚠ Tillåt urklipp i webbläsaren', 3000);
+  });
+}
+
+// ── PDF-EXPORT ──
+function exportToPDF() {
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  showToast(t.pdfTip, 6000);
+  const wrap = document.querySelector('.editor-wrap');
+  const savedTransform  = wrap ? wrap.style.transform : '';
+  const savedWidth      = wrap ? wrap.style.width : '';
+  const savedMargin     = wrap ? wrap.style.marginBottom : '';
+  if (wrap) { wrap.style.transform = ''; wrap.style.width = ''; wrap.style.marginBottom = ''; }
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => {
+      if (wrap) { wrap.style.transform = savedTransform; wrap.style.width = savedWidth; wrap.style.marginBottom = savedMargin; }
+    }, 500);
+  }, 400);
+}
+
+// ── WORD-EXPORT ──
+function exportToWord() {
+  let html  = quill.getSemanticHTML();
+  const title = document.getElementById('docTitle').value.trim() || 'Autotext_Dokument';
+  // Ta bort inline font-size styles som Quill lägger till — de stör Word
+  // (behåll dem bara om de skiljer sig från default 12pt)
+  const css = '@page{margin:2.5cm;}body{font-family:"Times New Roman",serif;font-size:12pt;line-height:1.6;margin:0;}h1{font-size:24pt;font-weight:bold;margin-bottom:12pt;}h2{font-size:18pt;font-weight:bold;margin-bottom:8pt;}h3{font-size:14pt;font-weight:bold;margin-bottom:6pt;}h4{font-size:12pt;font-weight:bold;font-style:italic;margin-bottom:4pt;}p{margin-bottom:6pt;}ul,ol{margin-left:20pt;margin-bottom:6pt;}';
+  const doc = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>${css}</style></head><body>${html}</body></html>`;
+  const blob = new Blob(['\ufeff' + doc], { type: 'application/msword' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = title + '.doc'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ Word-fil nedladdad', 2000);
+}
+
+// ── VERSIONSHISTORIK ──
+const HISTORY_KEY   = 'autotext_history';
+const INTERVALS_MS  = [60000,120000,240000,480000,960000,1800000,3600000,7200000,14400000,28800000,86400000,172800000,345600000,604800000];
+let versions = [];
+try { versions = JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch(e) { versions = []; }
+renderHistory();
+
+function shouldSaveVersion() {
+  if (quill.getText().trim().length < 5) return false;
+  if (!versions.length) return true;
+  const age = Date.now() - versions[0].ts;
+  const idx = Math.min(versions.length, INTERVALS_MS.length - 1);
+  return age >= INTERVALS_MS[idx];
+}
+
+function saveVersion(force) {
+  if (!force && !shouldSaveVersion()) return;
+  const text = quill.getText().trim();
+  if (text.length < 5) return;
+  const now = new Date();
+  const ts  = now.getTime();
+  versions.unshift({
+    ts,
+    contents: quill.getContents(),
+    preview:  text.slice(0, 60),
+    chars:    text.length
+  });
+  versions = versions.filter(v => v.ts >= ts - 604800000); // max 1 vecka
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(versions));
+  renderHistory();
+}
+
+function formatRelative(ts) {
+  const d = Date.now() - ts;
+  if (d < 90000)       return 'För 1 minut sedan';
+  if (d < 3600000)     return `För ${Math.round(d/60000)} min sedan`;
+  if (d < 7200000)     return 'För 1 timme sedan';
+  if (d < 86400000)    return `För ${Math.round(d/3600000)} tim sedan`;
+  if (d < 172800000)   return 'Igår';
+  if (d < 604800000)   return `För ${Math.round(d/86400000)} dagar sedan`;
+  return 'För 1 vecka sedan';
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (!versions.length) {
+    list.innerHTML = '<div class="history-empty">Inga versioner ännu.<br><br>Sparas automatiskt: 1 min → 2 min → 4 min → … → 1 vecka.</div>';
+    return;
+  }
+  let lastDay = '';
+  list.innerHTML = versions.map((v, i) => {
+    const d   = new Date(v.ts);
+    const day = d.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
+    const hdr = day !== lastDay ? `<div class="history-day">${day}</div>` : '';
+    lastDay = day;
+    const time = d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+    return `${hdr}<div class="history-item">
+      <div class="history-item-time">${time}</div>
+      <div class="history-item-relative">${formatRelative(v.ts)}</div>
+      <div class="history-item-preview">${v.preview}${v.chars > 60 ? '…' : ''}</div>
+      <div class="history-item-chars">${v.chars.toLocaleString('sv-SE')} tecken</div>
+      <button class="history-restore-btn" onclick="restoreVersion(${i})">↩ Återställ</button>
+    </div>`;
+  }).join('');
+}
+
+function restoreVersion(i) {
+  if (!confirm('↩?')) return;
+  saveVersion(true);
+  quill.setContents(versions[i].contents);
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  showToast(t.restored, 2000);
+  toggleHistory();
+}
+
+function toggleHistory() {
+  document.getElementById('historyPanel').classList.toggle('open');
+  document.getElementById('historyBtn').classList.toggle('active');
+}
+
+setInterval(() => saveVersion(false), 30000);
+
+// ── KEYBOARD ──
+
+
+// ── SKRIV-MODAL ──
+function openWriteModal() {
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  document.getElementById('writeModalTitle').textContent = t.write || '📝 Hjälp mig skriva';
+  document.getElementById('writePromptInput').value = '';
+  document.getElementById('writeModal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('writePromptInput').focus(), 100);
+}
+function closeWriteModal() {
+  document.getElementById('writeModal').classList.add('hidden');
+}
+async function submitWritePrompt() {
+  const what = document.getElementById('writePromptInput').value.trim();
+  if (!what) return;
+  closeWriteModal();
+  const t = UI_TRANSLATIONS[currentUILang] || UI_TRANSLATIONS.sv;
+  showToast(t.aiSuggestion);
+  try {
+    const result = await callGroq(
+      `Du hjälper användare att skriva brev och texter på korrekt, tydlig svenska. Användaren beskriver vad de vill säga på vilket språk som helst. Skriv ett välformulerat utkast på svenska med lämplig ton. Svara ENBART med den svenska texten, inga förklaringar.`,
+      what
+    );
+    hideToast();
+    if (result) {
+      pendingWriteSuggestion = result;
+      showAIPanel('📝 Förslag', result, true);
+    }
+  } catch(e) { hideToast(); showToast('⚠ ' + e.message, 3000); }
+}
+// Stäng vid klick på bakgrund
+document.getElementById('writeModal')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('writeModal')) closeWriteModal();
+});
+
+
+quill.keyboard.addBinding({ key: 'Tab' }, function() {
+  const selection = quill.getSelection();
+  if (selection) {
+    quill.insertText(selection.index, '    ');
+    quill.setSelection(selection.index + 4);
+  }
+  return false;
+});
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .catch(e => console.log('SW:', e));
+  });
+}
+
+// ── TEXTSTORLEK + / − ──
+const PT_SIZES = ['8pt','9pt','10pt','11pt','12pt','14pt','16pt','18pt','20pt','24pt','28pt','32pt','36pt','48pt','60pt','72pt'];
+const PT_LABELS = ['8','9','10','11','12','14','16','18','20','24','28','32','36','48','60','72'];
+
+function getSizeIndex(currentSize) {
+  const idx = PT_SIZES.indexOf(currentSize);
+  return idx === -1 ? 4 : idx; // default 12pt = index 4
+}
+
+function updatePtDisplay(sizeStr) {
+  const el = document.getElementById('ptSizeDisplay');
+  if (!el) return;
+  const idx = getSizeIndex(sizeStr);
+  el.textContent = PT_LABELS[idx] !== undefined ? PT_LABELS[idx] : (sizeStr || '12').replace('pt','');
+}
+
+function applyPtSize(dir) {
+  const sel = quill.getSelection();
+  if (!sel) return;
+  const fmt = quill.getFormat(sel.index, sel.length);
+  const current = fmt.size || '16px';
+  const idx = getSizeIndex(current);
+  const newIdx = Math.max(0, Math.min(PT_SIZES.length - 1, idx + dir));
+  const newSize = PT_SIZES[newIdx];
+  quill.format('size', newSize, 'user');
+  updatePtDisplay(newSize);
+  showToast('🔤 ' + PT_LABELS[newIdx] + ' pt', 1000);
+}
+
+// Uppdatera visning när markören flyttas
+quill.on('selection-change', (range) => {
+  if (!range) return;
+  const fmt = quill.getFormat(range.index, range.length);
+  updatePtDisplay(fmt.size || '12pt');
+});
+
+document.getElementById('btnSizePlus')?.addEventListener('mousedown', e => {
+  e.preventDefault();
+  applyPtSize(1);
+});
+document.getElementById('btnSizeMinus')?.addEventListener('mousedown', e => {
+  e.preventDefault();
+  applyPtSize(-1);
+});
+const ZOOM_STEPS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0];
+let zoomIdx = 5; // standard 100%
+
+function applyZoom() {
+  const scale = ZOOM_STEPS[zoomIdx];
+
+  // Zooma bara dokumentinnehållet, inte hela appen
+  // Detta bevarar workspace scroll och menyn förblir synlig
+  const wrap = document.querySelector('.editor-wrap');
+  if (wrap) {
+    if (scale === 1) {
+      wrap.style.transform = '';
+      wrap.style.transformOrigin = '';
+      wrap.style.marginBottom = '';
+      wrap.style.width = '';
+    } else {
+      wrap.style.transformOrigin = 'top center';
+      wrap.style.transform = `scale(${scale})`;
+      // Kompensera höjd så workspace vet hur stort innehållet är
+      const h = wrap.getBoundingClientRect().height;
+      wrap.style.marginBottom = `${h * (scale - 1)}px`;
+      // Kompensera bredd så horisontell scroll fungerar
+      wrap.style.width = `${794 * scale}px`;
+    }
+  }
+
+  // Rensa gamla body-zoom
+  document.body.style.zoom = '';
+}
+
+// Mushjul scrollar workspace — fånga på workspace direkt, inte document
+(function() {
+  function setupWheelScroll() {
+    const ws = document.querySelector('.workspace');
+    if (!ws) return;
+
+    ws.addEventListener('wheel', e => {
+      // Låt inre paneler (AI, historik, hjälp) scrolla sig själva
+      if (e.target.closest('.ai-panel-body, .history-list, .help-body, .uilang-menu')) return;
+      e.preventDefault();
+      ws.scrollBy({ top: e.deltaY, left: e.deltaX, behavior: 'auto' });
+    }, { passive: false });
+
+    // Editor-ytan ligger ovanpå workspace — fånga wheel där också
+    const editor = document.querySelector('.ql-editor');
+    if (editor) {
+      editor.addEventListener('wheel', e => {
+        e.stopPropagation();
+        ws.scrollBy({ top: e.deltaY, left: e.deltaX, behavior: 'auto' });
+      }, { passive: true });
+    }
+  }
+  // Quill kan vara sent på att rendera
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupWheelScroll);
+  } else {
+    setupWheelScroll();
+    setTimeout(setupWheelScroll, 600); // fallback om Quill renderar sent
+  }
+})();
+
+// Pan med mus-drag och touch
+(function() {
+  const ws = () => document.querySelector('.workspace');
+  let dragging = false, startX, startY, scrollX, scrollY;
+
+  document.addEventListener('mousedown', e => {
+    const w = ws();
+    if (!w || ZOOM_STEPS[zoomIdx] <= 1) return;
+    // Bara drag på workspace-bakgrunden, inte i editorn
+    if (e.target.closest('.ql-editor') && e.button === 0) return;
+    if (e.button !== 1 && e.button !== 0) return;
+    dragging = true;
+    startX = e.clientX; startY = e.clientY;
+    scrollX = w.scrollLeft; scrollY = w.scrollTop;
+    w.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const w = ws();
+    if (!w) return;
+    w.scrollLeft = scrollX - (e.clientX - startX);
+    w.scrollTop  = scrollY - (e.clientY - startY);
+  });
+  document.addEventListener('mouseup', () => {
+    dragging = false;
+    const w = ws();
+    if (w && ZOOM_STEPS[zoomIdx] > 1) w.style.cursor = 'grab';
+  });
+
+  // Touch-pan
+  let t0;
+  document.addEventListener('touchstart', e => {
+    const w = ws();
+    if (!w || ZOOM_STEPS[zoomIdx] <= 1 || e.touches.length !== 1) return;
+    t0 = { x: e.touches[0].clientX, y: e.touches[0].clientY, sl: w.scrollLeft, st: w.scrollTop };
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    const w = ws();
+    if (!w || !t0 || ZOOM_STEPS[zoomIdx] <= 1 || e.touches.length !== 1) return;
+    w.scrollLeft = t0.sl - (e.touches[0].clientX - t0.x);
+    w.scrollTop  = t0.st - (e.touches[0].clientY - t0.y);
+  }, { passive: true });
+  document.addEventListener('touchend', () => { t0 = null; });
+})();
+applyZoom();
+applyZoom();
+
+function changeZoom(dir) {
+  zoomIdx = Math.max(0, Math.min(ZOOM_STEPS.length - 1, zoomIdx + dir));
+  applyZoom();
+  showToast('🔍 ' + Math.round(ZOOM_STEPS[zoomIdx] * 100) + '%', 1200);
+}
+
+function resetZoom() {
+  zoomIdx = 5; // 100%
+  applyZoom();
+  showToast('🔍 100%', 1200);
+}
+
+setTimeout(applyZoom, 300);
+
+// ── PRESENTATIONSLÄGE ──
+let presentSlides = [];
+let presentIdx = 0;
+
+function buildSlides() {
+  const docTitle = document.getElementById('docTitle')?.value?.trim() || 'Autotext';
+  const slides = [];
+  let currentHeading = docTitle;
+  let headingUsed = false;
+
+  const editor = document.querySelector('.ql-editor');
+  if (!editor) return [{ title: docTitle, body: '' }];
+
+  const elements = Array.from(editor.children).filter(el => el.innerText.trim());
+
+  elements.forEach((el, i) => {
+    const tag = el.tagName.toLowerCase();
+    const text = el.innerText.replace(/\n/g, ' ').trim();
+
+    if (tag === 'h1' || tag === 'h2' || tag === 'h3' || tag === 'h4') {
+      // Om förra rubriken aldrig fick ett stycke — visa den ensam
+      if (!headingUsed && slides.length > 0 && slides[slides.length-1].body === '' ) {
+        // redan en tom rubrik-slide, uppdatera den
+        slides[slides.length-1].title = text;
+      } else if (!headingUsed && currentHeading !== docTitle) {
+        slides.push({ title: currentHeading, body: '' });
+      }
+      currentHeading = text;
+      headingUsed = false;
+    } else {
+      // Stycke — rubrik som titel
+      slides.push({ title: currentHeading, body: text });
+      headingUsed = true;
+    }
+  });
+
+  // Sista rubriken utan stycke
+  if (!headingUsed && currentHeading !== docTitle) {
+    slides.push({ title: currentHeading, body: '' });
+  }
+
+  return slides.length > 0 ? slides : [{ title: docTitle, body: '' }];
+}
+
+function renderSlide() {
+  const slide = presentSlides[presentIdx];
+  document.getElementById('presentTitle').textContent = slide.title;
+  document.getElementById('presentBody').textContent = slide.body;
+  document.getElementById('presentCounter').textContent =
+    (presentIdx + 1) + ' / ' + presentSlides.length;
+  document.getElementById('presentPrev').disabled = presentIdx === 0;
+  document.getElementById('presentNext').disabled = presentIdx === presentSlides.length - 1;
+}
+
+const PRESENT_ZOOM_STEPS = [50, 60, 75, 90, 100, 115, 130, 150, 175, 200];
+let presentZoomIdx = 4; // 100%
+
+function presentZoom(dir) {
+  presentZoomIdx = Math.max(0, Math.min(PRESENT_ZOOM_STEPS.length - 1, presentZoomIdx + dir));
+  const pct = PRESENT_ZOOM_STEPS[presentZoomIdx];
+  const content = document.querySelector('.present-content');
+  if (content) content.style.transform = `scale(${pct/100})`;
+  if (content) content.style.transformOrigin = 'center center';
+  document.getElementById('presentZoomLabel').textContent = pct + '%';
+}
+
+function presentNav(dir) {
+  presentIdx = Math.max(0, Math.min(presentSlides.length - 1, presentIdx + dir));
+  renderSlide();
+}
+
+function startPresentation() {
+  presentZoomIdx = 4;
+  document.getElementById('presentZoomLabel').textContent = '100%';
+  const content = document.querySelector('.present-content');
+  if (content) { content.style.transform = ''; content.style.transformOrigin = ''; }
+  // Kort fördröjning så Quill hinner rendera DOM klart
+  setTimeout(() => {
+    presentSlides = buildSlides();
+    presentIdx = 0;
+    renderSlide();
+    document.getElementById('presentOverlay').classList.remove('hidden');
+  }, 50);
+}
+
+function endPresentation() {
+  document.getElementById('presentOverlay').classList.add('hidden');
+}
+
+// Tangentbordsnavigering — samlad i en enda lyssnare
+document.addEventListener('keydown', e => {
+  // PDF-export
+  if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+    e.preventDefault(); exportToPDF(); return;
+  }
+  // Stäng skriv-modal
+  if (e.key === 'Escape' && !document.getElementById('writeModal').classList.contains('hidden')) {
+    closeWriteModal(); return;
+  }
+  // Presentationsläge
+  const overlay = document.getElementById('presentOverlay');
+  if (!overlay.classList.contains('hidden')) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault(); presentNav(1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault(); presentNav(-1);
+    } else if (e.key === 'Escape') {
+      endPresentation();
+    }
+  }
+});
+
+// Swipe-stöd
+(function() {
+  let tx = 0;
+  const el = () => document.getElementById('presentOverlay');
+  document.addEventListener('touchstart', e => {
+    if (el().classList.contains('hidden')) return;
+    tx = e.touches[0].clientX;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (el().classList.contains('hidden')) return;
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) presentNav(dx < 0 ? 1 : -1);
+  }, { passive: true });
+})();
+
+// Applicera UI-språk sist när allt är renderat
+setTimeout(() => applyUILang(), 50);
+</script>
+</body>
+</html>
